@@ -27,6 +27,7 @@
   
   /* Layout */
   --bottom-nav-height: 72px;
+  --navbar-height: 60px;
 }
 
 * {
@@ -144,6 +145,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  padding-top: var(--navbar-height);
   padding-bottom: var(--bottom-nav-height);
 }
 

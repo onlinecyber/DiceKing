@@ -34,7 +34,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="app-container" style={{ justifyContent: 'center', minHeight: '100vh' }}>
+    <div className="app-container" style={{ justifyContent: 'center', minHeight: '100vh', paddingTop: 0 }}>
       <div className="content-container" style={{ width: '100%', maxWidth: '400px' }}>
         
         {/* Branding header */}
