@@ -34,6 +34,7 @@ const Withdraw = () => {
   const [bankIfsc, setBankIfsc] = useState('');
   const [bankName, setBankName] = useState('');
 +  const [holderName, setHolderName] = useState('');
+  const [upiName, setUpiName] = useState('');
   const [existingBanks, setExistingBanks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [bankSaved, setBankSaved] = useState(false); // track if bank details saved
@@ -120,6 +121,10 @@ const Withdraw = () => {
       showToast ? showToast('Please enter your UPI ID.', 'error') : alert('Please enter your UPI ID.');
       return;
     }
+    if (method === 'UPI Payout' && !upiName.trim()) {
+      showToast ? showToast('Please enter the name for the UPI account.', 'error') : alert('Please enter the name for the UPI account.');
+      return;
+    }
     if (method === 'Bank Account Transfer') {
         if (!bankAcc.trim() || !bankIfsc.trim() || !bankName.trim() || !holderName.trim()) {
           const msg = 'Please fill all bank details (Account No, IFSC, Bank Name, Account Holder).';
@@ -139,7 +144,7 @@ const Withdraw = () => {
 
     setLoading(true);
     try {
-      const payoutInfo = method === 'UPI Payout' ? address.trim() : JSON.stringify({ accountNumber: bankAcc.trim(), ifsc: bankIfsc.trim(), bankName: bankName.trim(), holderName: holderName.trim() });
+      const payoutInfo = method === 'UPI Payout' ? JSON.stringify({ upiId: address.trim(), upiName: upiName.trim() }) : JSON.stringify({ accountNumber: bankAcc.trim(), ifsc: bankIfsc.trim(), bankName: bankName.trim(), holderName: holderName.trim() });
       await requestWithdrawal(numAmount, method, payoutInfo);
       // Save bank details for future reference (avoid duplicates already checked)
       if (method === 'Bank Account Transfer') {
@@ -149,6 +154,7 @@ const Withdraw = () => {
             accountNumber: bankAcc.trim(),
             ifsc: bankIfsc.trim(),
             bankName: bankName.trim(),
+            holderName: holderName.trim(),
             createdAt: serverTimestamp(),
           });
         } catch (e) {
@@ -330,17 +336,29 @@ const Withdraw = () => {
             {/* Conditional Fields based on payout method */}
             {method === 'UPI Payout' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
-                  UPI ID
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. name@upi"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  style={inputStyle}
-                />
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
+                    UPI ID
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. name@upi"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    style={inputStyle}
+                  />
+                  {/* UPI Account Name */}
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
+                    Account Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. John Doe"
+                    value={upiName}
+                    onChange={(e) => setUpiName(e.target.value)}
+                    style={inputStyle}
+                  />
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

@@ -78,7 +78,6 @@ const Deposit = () => {
   const numAmount = Number(amount);
   const minDeposit = appSettings?.minDeposit || 100;
   const canPayUpi = numAmount >= minDeposit;
-
   const upiLink = appSettings?.upiId
     ? `upi://pay?pa=${appSettings.upiId}&pn=DiceKing&am=${amount}&cu=INR&tn=Recharge_Wallet`
     : null;
@@ -86,9 +85,7 @@ const Deposit = () => {
   return (
     <div className="app-container">
       <Navbar />
-
       <div className="content-container">
-
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
@@ -112,110 +109,9 @@ const Deposit = () => {
           </div>
         </div>
 
-        {/* Balance Card */}
-        <GlassCard style={{
-          padding: '18px 20px',
-          background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(11,9,20,0.9) 100%)',
-          border: '1px solid rgba(16,185,129,0.25)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '4px',
-        }}>
-          <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: '700', letterSpacing: '1.5px' }}>
-            CURRENT BALANCE
-          </span>
-          <span style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--accent-gold)' }}>
-            ₹{wallet ? wallet.balance.toFixed(2) : '0.00'}
-          </span>
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-            {currentUser?.email || ''}
-          </span>
-        </GlassCard>
-
-        {/* Info Note */}
-        <div style={{
-          background: 'rgba(16,185,129,0.05)',
-          border: '1px dashed rgba(16,185,129,0.3)',
-          borderRadius: '10px',
-          padding: '12px 14px',
-          display: 'flex',
-          gap: '10px',
-          alignItems: 'flex-start',
-        }}>
-          <Info size={16} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            Min deposit <strong style={{ color: '#10b981' }}>₹{minDeposit}</strong>. Pay to UPI ID below, then enter UTR reference for approval.
-          </span>
-        </div>
-
-        {/* Quick Amount Chips */}
+        {/* QR Code Section */}
         <GlassCard style={{ padding: '18px' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px', marginBottom: '12px', display: 'block' }}>
-            QUICK SELECT AMOUNT
-          </span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-            {quickAmounts.map((item) => {
-              const isSelected = numAmount === item.amount;
-              return (
-                <button
-                  key={item.amount}
-                  type="button"
-                  onClick={() => handleQuickSelect(item.amount)}
-                  style={{
-                    position: 'relative',
-                    padding: '12px 6px',
-                    background: isSelected
-                      ? 'rgba(16,185,129,0.12)'
-                      : 'rgba(255,255,255,0.02)',
-                    border: isSelected
-                      ? '1px solid #10b981'
-                      : '1px solid var(--card-border)',
-                    borderRadius: '12px',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '3px',
-                    transition: 'all 0.18s ease',
-                    boxShadow: isSelected ? '0 0 12px rgba(16,185,129,0.25)' : 'none',
-                  }}
-                >
-                  {item.hot && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '-8px',
-                      right: '-4px',
-                      background: 'linear-gradient(to right, #f97316, #ef4444)',
-                      color: '#fff',
-                      fontSize: '0.5rem',
-                      fontWeight: '900',
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                      zIndex: 2,
-                    }}>🔥 HOT</div>
-                  )}
-                  <span style={{
-                    fontSize: '0.9rem',
-                    fontWeight: '800',
-                    color: isSelected ? '#10b981' : '#fff',
-                  }}>₹{item.amount}</span>
-                  <span style={{ fontSize: '0.5rem', color: 'var(--text-muted)', fontWeight: '700' }}>
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </GlassCard>
-
-        {/* UPI ID Box */}
-        <GlassCard style={{ padding: '18px' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px', marginBottom: '12px', display: 'block' }}>
-            PAY TO UPI ID
-          </span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px', marginBottom: '12px', display: 'block' }}>PAY TO UPI ID</span>
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -251,8 +147,6 @@ const Deposit = () => {
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
-
-          {/* QR Code */}
           {appSettings?.qrUrl && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginTop: '16px' }}>
               <div style={{
@@ -273,8 +167,6 @@ const Deposit = () => {
               </span>
             </div>
           )}
-
-          {/* Pay via UPI App button */}
           {canPayUpi && upiLink && (
             <button
               type="button"
@@ -305,21 +197,82 @@ const Deposit = () => {
           )}
         </GlassCard>
 
+        {/* Quick Select Amount */}
+        <GlassCard style={{ padding: '18px' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px', marginBottom: '12px', display: 'block' }}>QUICK SELECT AMOUNT</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+            {quickAmounts.map((item) => {
+              const isSelected = numAmount === item.amount;
+              return (
+                <button
+                  key={item.amount}
+                  type="button"
+                  onClick={() => handleQuickSelect(item.amount)}
+                  style={{
+                    position: 'relative',
+                    padding: '12px 6px',
+                    background: isSelected ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.02)',
+                    border: isSelected ? '1px solid #10b981' : '1px solid var(--card-border)',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '3px',
+                    transition: 'all 0.18s ease',
+                    boxShadow: isSelected ? '0 0 12px rgba(16,185,129,0.25)' : 'none',
+                  }}
+                >
+                  {item.hot && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      right: '-4px',
+                      background: 'linear-gradient(to right, #f97316, #ef4444)',
+                      color: '#fff',
+                      fontSize: '0.5rem',
+                      fontWeight: '900',
+                      padding: '2px 6px',
+                      borderRadius: '10px',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                      zIndex: 2,
+                    }}>🔥 HOT</div>
+                  )}
+                  <span style={{ fontSize: '0.9rem', fontWeight: '800', color: isSelected ? '#10b981' : '#fff' }}>₹{item.amount}</span>
+                  <span style={{ fontSize: '0.5rem', color: 'var(--text-muted)', fontWeight: '700' }}>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </GlassCard>
+
+        {/* Info Note */}
+        <div style={{
+          background: 'rgba(16,185,129,0.05)',
+          border: '1px dashed rgba(16,185,129,0.3)',
+          borderRadius: '10px',
+          padding: '12px 14px',
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'flex-start',
+        }}>
+          <Info size={16} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            Min deposit <strong style={{ color: '#10b981' }}>₹{minDeposit}</strong>. Pay to UPI ID above, then enter UTR reference for approval.
+          </span>
+        </div>
+
         {/* Deposit Form */}
         <GlassCard style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
             <CreditCard size={18} color="#10b981" />
-            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-primary)' }}>
-              SUBMIT DEPOSIT
-            </span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-primary)' }}>SUBMIT DEPOSIT</span>
           </div>
-
           <form onSubmit={handleDepositSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {/* Amount */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
-                AMOUNT (₹)
-              </label>
+              <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>AMOUNT (₹)</label>
               <input
                 type="number"
                 min="1"
@@ -330,28 +283,18 @@ const Deposit = () => {
                 style={inputStyle}
               />
             </div>
-
             {/* Payment Method */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
-                PAYMENT METHOD
-              </label>
-              <select
-                value={method}
-                onChange={(e) => setMethod(e.target.value)}
-                style={inputStyle}
-              >
+              <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>PAYMENT METHOD</label>
+              <select value={method} onChange={(e) => setMethod(e.target.value)} style={inputStyle}>
                 <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
                 <option value="IMPS">IMPS Bank Transfer</option>
                 <option value="Paytm">Paytm Wallet</option>
               </select>
             </div>
-
             {/* UTR Reference */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
-                UTR / TRANSACTION REFERENCE
-              </label>
+              <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>UTR / TRANSACTION REFERENCE</label>
               <input
                 type="text"
                 required
@@ -361,16 +304,13 @@ const Deposit = () => {
                 style={inputStyle}
               />
             </div>
-
             <button
               type="submit"
               disabled={loading}
               style={{
                 width: '100%',
                 padding: '13px',
-                background: loading
-                  ? 'var(--bg-tertiary)'
-                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                background: loading ? 'var(--bg-tertiary)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 border: 'none',
                 borderRadius: '12px',
                 color: loading ? 'var(--text-muted)' : '#fff',
@@ -391,9 +331,7 @@ const Deposit = () => {
             </button>
           </form>
         </GlassCard>
-
       </div>
-
       <BottomNav />
     </div>
   );
