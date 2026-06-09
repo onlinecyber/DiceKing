@@ -44,8 +44,8 @@ const Register = () => {
         }
       }
 
-      // Wait for Auth listener to load profile
-      navigate('/');
+      // Navigate to dashboard after registration
+      navigate('/dashboard');
     } catch (err) {
       console.error(err);
       setError(err.message || 'Failed to create account. Please try again.');

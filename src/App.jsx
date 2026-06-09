@@ -13,6 +13,7 @@ import Leaderboard from './pages/Leaderboard';
 import Admin from './pages/Admin';
 import SupportPage from './pages/SupportPage';
 import History from './pages/History';
+import Dashboard from './pages/Dashboard';
 
 import './index.css';
 import './styles/theme.css';
@@ -29,6 +30,11 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             
             {/* Protected Core Screens */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
             <Route path="/" element={
               <ProtectedRoute>
                 <Home />

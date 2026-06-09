@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Gamepad2, Wallet, Trophy, User, ShieldAlert, History } from 'lucide-react';
+import { Gamepad2, Wallet, Trophy, User, ShieldAlert, History, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import GlassCard from './GlassCard';
 
@@ -45,8 +45,14 @@ const BottomNav = () => {
         boxShadow: '0 -8px 32px rgba(0,0,0,0.4)'
       }}
     >
+      {/* Dashboard Tab */}
+      <NavLink to="/dashboard" style={navItemStyle}>
+        <LayoutDashboard size={20} />
+        <span>Home</span>
+      </NavLink>
+
       {/* Game Board Tab */}
-      <NavLink to="/" style={navItemStyle}>
+      <NavLink to="/" end style={navItemStyle}>
         <Gamepad2 size={20} />
         <span>Play</span>
       </NavLink>
