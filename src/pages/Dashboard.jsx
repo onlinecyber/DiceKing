@@ -98,13 +98,13 @@ const Dashboard = () => {
       <div className="content-container" style={{ gap: '16px' }}>
 
         {/* Wallet Balance Card */}
-        <GlassCard style={{ padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <Wallet size={16} color="var(--accent-gold)" />
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px' }}>WALLET BALANCE</span>
+        <GlassCard style={{ padding: '12px 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+            <Wallet size={13} color="var(--accent-gold)" />
+            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px' }}>WALLET BALANCE</span>
           </div>
 
-          <div style={{ fontSize: '2.6rem', fontWeight: '900', color: 'var(--accent-gold)', marginBottom: '18px', letterSpacing: '-1px', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--accent-gold)', marginBottom: '10px', letterSpacing: '-0.5px', textAlign: 'center' }}>
             ₹{wallet ? wallet.balance.toFixed(2) : '0.00'}
           </div>
 
@@ -122,14 +122,14 @@ const Dashboard = () => {
             <button
               onClick={() => navigate('/wallet')}
               className="btn-gold"
-              style={{ flex: 1, padding: '10px', fontSize: '0.8rem' }}
+              style={{ flex: 1, padding: '8px', fontSize: '0.75rem' }}
             >
               Deposit
             </button>
             <button
               onClick={() => navigate('/wallet')}
               className="btn-outline"
-              style={{ flex: 1, padding: '10px', fontSize: '0.8rem' }}
+              style={{ flex: 1, padding: '8px', fontSize: '0.75rem' }}
             >
               Withdraw
             </button>
