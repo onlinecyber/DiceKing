@@ -36,7 +36,7 @@ const Navbar = () => {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
         {/* App Title / Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+        <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
           <Crown size={24} color="var(--accent-gold)" style={{ filter: 'drop-shadow(0 0 8px var(--accent-gold))' }} />
           <span style={{ 
             fontSize: '1.25rem', 
