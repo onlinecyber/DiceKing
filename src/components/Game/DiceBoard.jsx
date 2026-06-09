@@ -1,5 +1,50 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useGame } from '../../context/GameContext';
+
+// Play dice rolling rattle using Web Audio API
+const playDiceRattle = (audioCtxRef) => {
+  try {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    const ctx = audioCtxRef.current;
+    // Play 5 rapid clicks to simulate dice rattling
+    for (let i = 0; i < 5; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'square';
+      const freq = 120 + Math.random() * 80;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.08);
+      osc.start(ctx.currentTime + i * 0.12);
+      osc.stop(ctx.currentTime + i * 0.12 + 0.08);
+    }
+  } catch (e) {}
+};
+
+// Play a satisfying "thud" reveal sound when dice land
+const playDiceThud = (audioCtxRef) => {
+  try {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    const ctx = audioCtxRef.current;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(200, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.6, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch (e) {}
+};
 
 // Helper component to render dots for each individual face
 const FaceDots = ({ value }) => {
@@ -73,6 +118,20 @@ const DiceCube = ({ value, rolling }) => {
 
 const DiceBoard = () => {
   const { rolling, rolledDice, settling, activeRound } = useGame();
+  const audioCtxRef = useRef(null);
+  const prevRollingRef = useRef(false);
+
+  useEffect(() => {
+    if (rolling && !prevRollingRef.current) {
+      // Dice just started rolling — play rattle
+      playDiceRattle(audioCtxRef);
+    }
+    if (!rolling && prevRollingRef.current) {
+      // Dice just stopped — play thud
+      playDiceThud(audioCtxRef);
+    }
+    prevRollingRef.current = rolling;
+  }, [rolling]);
 
   return (
     <div style={{
