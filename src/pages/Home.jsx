@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Timer from '../components/Game/Timer';
 import DiceBoard from '../components/Game/DiceBoard';
 import BettingPanel from '../components/Game/BettingPanel';
-import HistoryList from '../components/Game/HistoryList';
+
 import Navbar from '../components/Common/Navbar';
 import BottomNav from '../components/Common/BottomNav';
 import GlassCard from '../components/Common/GlassCard';
@@ -163,8 +163,7 @@ const Home = () => {
         {/* 3. Betting Choices Board */}
         <BettingPanel />
 
-        {/* 4. Swipable Recent Roll History */}
-        <HistoryList />
+
 
         {/* 5. Leaderboard Preview */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px', paddingBottom: '16px' }}>

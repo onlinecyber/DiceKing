@@ -24,7 +24,7 @@ const Timer = () => {
           <span style={{ fontSize: '0.9rem' }}>📜</span> How to play
         </div>
         <div style={{ fontSize: '0.8rem', color: '#fff', fontWeight: '600', margin: '4px 0' }}>
-          WinGo 30sec
+          Dice 30sec
         </div>
         <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
           {recentRounds.map((r, idx) => {
