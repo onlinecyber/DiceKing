@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Info, Banknote } from 'lucide-react';
+import { ArrowLeft, Info, Banknote, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGame } from '../context/GameContext';
 import GlassCard from '../components/Common/GlassCard';
 import Navbar from '../components/Common/Navbar';
 import BottomNav from '../components/Common/BottomNav';
+import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 const inputStyle = {
   background: 'rgba(19,15,36,0.5)',
@@ -27,8 +29,31 @@ const Withdraw = () => {
 
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('UPI Payout');
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState(''); // for UPI ID
+  const [bankAcc, setBankAcc] = useState('');
+  const [bankIfsc, setBankIfsc] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [existingBanks, setExistingBanks] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Fetch existing bank accounts to prevent duplicates
+  useEffect(() => {
+    if (!currentUser) return;
+    const fetchBanks = async () => {
+      try {
+        const q = query(
+          collection(db, 'bankAccounts'),
+          where('uid', '==', currentUser.uid)
+        );
+        const snap = await getDocs(q);
+        const banks = snap.docs.map((d) => d.data());
+        setExistingBanks(banks);
+      } catch (e) {
+        console.error('Failed to load bank accounts', e);
+      }
+    };
+    fetchBanks();
+  }, [currentUser]);
 
   const minWithdrawal = appSettings?.minWithdrawal || 100;
   const numAmount = Number(amount);
@@ -57,14 +82,45 @@ const Withdraw = () => {
       showToast ? showToast(msg, 'error') : alert(msg);
       return;
     }
-    if (!address.trim()) {
-      showToast ? showToast('Please enter your UPI ID or bank details.', 'error') : alert('Please enter your UPI ID or bank details.');
+    if (!address.trim() && method === 'UPI Payout') {
+      showToast ? showToast('Please enter your UPI ID.', 'error') : alert('Please enter your UPI ID.');
       return;
+    }
+    if (method === 'Bank Account Transfer') {
+      if (!bankAcc.trim() || !bankIfsc.trim() || !bankName.trim()) {
+        const msg = 'Please fill all bank details (Account No, IFSC, Bank Name).';
+        showToast ? showToast(msg, 'error') : alert(msg);
+        return;
+      }
+      // Prevent duplicate bank
+      const duplicate = existingBanks.some(
+        (b) => b.accountNumber === bankAcc.trim() && b.ifsc === bankIfsc.trim()
+      );
+      if (duplicate) {
+        const msg = 'This bank account is already added to your profile.';
+        showToast ? showToast(msg, 'error') : alert(msg);
+        return;
+      }
     }
 
     setLoading(true);
     try {
-      await requestWithdrawal(numAmount, method, address.trim());
+            const payoutInfo = method === 'UPI Payout' ? address.trim() : JSON.stringify({ accountNumber: bankAcc.trim(), ifsc: bankIfsc.trim(), bankName: bankName.trim() });
+      await requestWithdrawal(numAmount, method, payoutInfo);
+      // Save bank details for future reference (avoid duplicates already checked)
+      if (method === 'Bank Account Transfer') {
+        try {
+          await addDoc(collection(db, 'bankAccounts'), {
+            uid: currentUser.uid,
+            accountNumber: bankAcc.trim(),
+            ifsc: bankIfsc.trim(),
+            bankName: bankName.trim(),
+            createdAt: serverTimestamp(),
+          });
+        } catch (e) {
+          console.error('Failed to save bank account', e);
+        }
+      }
       navigate('/wallet');
     } catch (err) {
       console.error('Withdrawal error:', err);
@@ -237,20 +293,58 @@ const Withdraw = () => {
               </select>
             </div>
 
-            {/* UPI / Bank Details */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
-                {method === 'UPI Payout' ? 'UPI ID' : 'BANK ACCOUNT DETAILS'}
-              </label>
-              <input
-                type="text"
-                required
-                placeholder={method === 'UPI Payout' ? 'e.g. name@upi' : 'A/C No · IFSC · Bank Name'}
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
+            {/* Conditional Fields based on payout method */}
+            {method === 'UPI Payout' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
+                  UPI ID
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. name@upi"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
+                  Bank Account Number
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Account Number"
+                  value={bankAcc}
+                  onChange={(e) => setBankAcc(e.target.value)}
+                  style={inputStyle}
+                />
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
+                  IFSC Code
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="IFSC"
+                  value={bankIfsc}
+                  onChange={(e) => setBankIfsc(e.target.value)}
+                  style={inputStyle}
+                />
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
+                  Bank Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Bank Name"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            )}
 
             <button
               type="submit"
