@@ -1,4 +1,25 @@
 require('dotenv').config();
+
+const apiLogs = [];
+const originalLog = console.log;
+const originalError = console.error;
+
+console.log = (...args) => {
+  const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+  apiLogs.push(`[LOG] [${new Date().toISOString()}] ${msg}`);
+  if (apiLogs.length > 150) apiLogs.shift();
+  originalLog.apply(console, args);
+};
+
+console.error = (...args) => {
+  const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+  apiLogs.push(`[ERR] [${new Date().toISOString()}] ${msg}`);
+  if (apiLogs.length > 150) apiLogs.shift();
+  originalError.apply(console, args);
+};
+
+global.apiLogs = apiLogs; // Expose globally to access in routes
+
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
@@ -936,6 +957,10 @@ app.get('/api/testDb', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+app.get('/api/testLogs', (req, res) => {
+  res.json({ success: true, logs: global.apiLogs || [] });
 });
 
 // Fallback Route
