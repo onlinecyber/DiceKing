@@ -275,26 +275,7 @@ const BettingPanel = () => {
           </button>
         </div>
 
-        {/* Row 3: Exact Number Bet Grid Toggle */}
-        <button
-          onClick={() => setShowExactGrid(!showExactGrid)}
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,215,0,0.05) 0%, rgba(31,27,53,0.45) 100%)',
-            border: showExactGrid ? '1px solid rgba(255,215,0,0.3)' : '1px solid var(--card-border)',
-            borderRadius: '16px',
-            padding: '14px',
-            cursor: 'pointer',
-            color: 'var(--text-primary)',
-            fontSize: '0.9rem',
-            fontWeight: '600',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}
-        >
-          {showExactGrid ? 'Hide Exact Value Bets' : 'Show Exact Value Bets (Up to 30x Payout)'}
-        </button>
+
 
         {/* Exact Values Grid */}
         {showExactGrid && (

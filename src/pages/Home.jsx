@@ -21,13 +21,13 @@ const Home = () => {
 
   // Today's fake winners ticker state
   const [winners, setWinners] = useState([
-    { name: 'Rahul K.', amount: 50000 },
-    { name: 'Priya S.', amount: 150000 },
-    { name: 'Imtiyaz A.', amount: 500000 },
-    { name: 'Arman S.', amount: 20000 },
-    { name: 'Farhan K.', amount: 80000 },
-    { name: 'Zoya P.', amount: 30000 },
-    { name: 'Sneha R.', amount: 120000 }
+    { name: 'Rahul K.', amount: 500 },
+    { name: 'Priya S.', amount: 1500 },
+    { name: 'Imtiyaz A.', amount: 5000 },
+    { name: 'Arman S.', amount: 2000 },
+    { name: 'Farhan K.', amount: 800 },
+    { name: 'Zoya P.', amount: 3000 },
+    { name: 'Sneha R.', amount: 1200 }
   ]);
   const [currentWinnerIdx, setCurrentWinnerIdx] = useState(0);
 
