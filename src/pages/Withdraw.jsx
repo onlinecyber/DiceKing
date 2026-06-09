@@ -33,6 +33,7 @@ const Withdraw = () => {
   const [bankAcc, setBankAcc] = useState('');
   const [bankIfsc, setBankIfsc] = useState('');
   const [bankName, setBankName] = useState('');
++  const [holderName, setHolderName] = useState('');
   const [existingBanks, setExistingBanks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [bankSaved, setBankSaved] = useState(false); // track if bank details saved
@@ -58,8 +59,8 @@ const Withdraw = () => {
 
   // Save bank details without withdrawal
   const handleSaveBank = async () => {
-    if (!bankAcc.trim() || !bankIfsc.trim() || !bankName.trim()) {
-      const msg = 'Please fill all bank details (Account No, IFSC, Bank Name).';
+    if (!bankAcc.trim() || !bankIfsc.trim() || !bankName.trim() || !holderName.trim()) {
+      const msg = 'Please fill all bank details (Account No, IFSC, Bank Name, Account Holder).';
       showToast ? showToast(msg, 'error') : alert(msg);
       return;
     }
@@ -77,6 +78,7 @@ const Withdraw = () => {
         accountNumber: bankAcc.trim(),
         ifsc: bankIfsc.trim(),
         bankName: bankName.trim(),
+        holderName: holderName.trim(),
         createdAt: serverTimestamp(),
       });
       setBankSaved(true);
@@ -119,25 +121,25 @@ const Withdraw = () => {
       return;
     }
     if (method === 'Bank Account Transfer') {
-      if (!bankAcc.trim() || !bankIfsc.trim() || !bankName.trim()) {
-        const msg = 'Please fill all bank details (Account No, IFSC, Bank Name).';
-        showToast ? showToast(msg, 'error') : alert(msg);
-        return;
-      }
-      // Prevent duplicate bank
-      const duplicate = existingBanks.some(
-        (b) => b.accountNumber === bankAcc.trim() && b.ifsc === bankIfsc.trim()
-      );
-      if (duplicate) {
-        const msg = 'This bank account is already added to your profile.';
-        showToast ? showToast(msg, 'error') : alert(msg);
-        return;
-      }
+        if (!bankAcc.trim() || !bankIfsc.trim() || !bankName.trim() || !holderName.trim()) {
+          const msg = 'Please fill all bank details (Account No, IFSC, Bank Name, Account Holder).';
+          showToast ? showToast(msg, 'error') : alert(msg);
+          return;
+        }
+        // Prevent duplicate bank (account number + IFSC)
+        const duplicate = existingBanks.some(
+          (b) => b.accountNumber === bankAcc.trim() && b.ifsc === bankIfsc.trim()
+        );
+        if (duplicate) {
+          const msg = 'This bank account is already added to your profile.';
+          showToast ? showToast(msg, 'error') : alert(msg);
+          return;
+        }
     }
 
     setLoading(true);
     try {
-            const payoutInfo = method === 'UPI Payout' ? address.trim() : JSON.stringify({ accountNumber: bankAcc.trim(), ifsc: bankIfsc.trim(), bankName: bankName.trim() });
+      const payoutInfo = method === 'UPI Payout' ? address.trim() : JSON.stringify({ accountNumber: bankAcc.trim(), ifsc: bankIfsc.trim(), bankName: bankName.trim(), holderName: holderName.trim() });
       await requestWithdrawal(numAmount, method, payoutInfo);
       // Save bank details for future reference (avoid duplicates already checked)
       if (method === 'Bank Account Transfer') {
@@ -373,6 +375,17 @@ const Withdraw = () => {
                   placeholder="Bank Name"
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
+                  style={inputStyle}
+                />
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '0.5px' }}>
+                  Account Holder Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Account Holder"
+                  value={holderName}
+                  onChange={(e) => setHolderName(e.target.value)}
                   style={inputStyle}
                 />
                 {/* Save Bank Details Button */}
