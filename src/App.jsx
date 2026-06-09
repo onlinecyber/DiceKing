@@ -9,6 +9,8 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import Profile from './pages/Profile';
 import Wallet from './pages/Wallet';
+import Deposit from './pages/Deposit';
+import Withdraw from './pages/Withdraw';
 import Leaderboard from './pages/Leaderboard';
 import Admin from './pages/Admin';
 import SupportPage from './pages/SupportPage';
@@ -48,6 +50,16 @@ function App() {
             <Route path="/wallet" element={
               <ProtectedRoute>
                 <Wallet />
+              </ProtectedRoute>
+            } />
+            <Route path="/deposit" element={
+              <ProtectedRoute>
+                <Deposit />
+              </ProtectedRoute>
+            } />
+            <Route path="/withdraw" element={
+              <ProtectedRoute>
+                <Withdraw />
               </ProtectedRoute>
             } />
             <Route path="/leaderboard" element={
