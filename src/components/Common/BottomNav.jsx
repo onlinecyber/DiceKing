@@ -42,7 +42,10 @@ const BottomNav = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
-        boxShadow: '0 -8px 32px rgba(0,0,0,0.4)'
+        background: 'rgba(11, 9, 20, 0.97)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: '0 -4px 24px rgba(0,0,0,0.6)'
       }}
     >
       {/* Dashboard Tab */}

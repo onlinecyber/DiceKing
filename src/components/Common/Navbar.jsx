@@ -27,7 +27,11 @@ const Navbar = () => {
         height: '60px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'between'
+        justifyContent: 'between',
+        background: 'rgba(11, 9, 20, 0.97)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.6)'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
