@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Gamepad2, Wallet, Trophy, User, ShieldAlert, History, LayoutDashboard } from 'lucide-react';
+import { Wallet, User, ShieldAlert, History, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import GlassCard from './GlassCard';
 
@@ -54,12 +54,6 @@ const BottomNav = () => {
         <span>Home</span>
       </NavLink>
 
-      {/* Game Board Tab */}
-      <NavLink to="/" end style={navItemStyle}>
-        <Gamepad2 size={20} />
-        <span>Play</span>
-      </NavLink>
-
       {/* Wallet Tab */}
       <NavLink to="/wallet" style={navItemStyle}>
         <Wallet size={20} />
@@ -70,12 +64,6 @@ const BottomNav = () => {
       <NavLink to="/history" style={navItemStyle}>
         <History size={20} />
         <span>History</span>
-      </NavLink>
-
-      {/* Leaderboard Tab */}
-      <NavLink to="/leaderboard" style={navItemStyle}>
-        <Trophy size={20} />
-        <span>Ranks</span>
       </NavLink>
 
       {/* Profile Tab */}
