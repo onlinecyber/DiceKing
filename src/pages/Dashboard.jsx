@@ -49,7 +49,7 @@ const Dashboard = () => {
       id: 'history',
       icon: History,
       label: 'History',
-      sublabel: `${totalBets} bets placed`,
+      sublabel: 'View your bet history',
       gradient: 'linear-gradient(135deg, #d97706, #f59e0b)',
       glow: 'rgba(245, 158, 11, 0.3)',
       path: '/history',
