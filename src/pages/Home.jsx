@@ -103,24 +103,13 @@ const Home = () => {
           </div>
         )}
 
-        {/* Welcome Section */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingLeft: '4px' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600' }}>WELCOME BACK</span>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {profile?.displayName || 'Player'}
-            {profile?.role === 'admin' && (
-              <span style={{ fontSize: '0.6rem', background: 'var(--danger-red)', color: '#fff', padding: '1px 5px', borderRadius: '4px', textTransform: 'uppercase', verticalAlign: 'middle' }}>
-                Admin
-              </span>
-            )}
-          </h2>
-        </div>
+
 
         {/* Wallet Balance widget card */}
-        <GlassCard style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', marginBottom: '8px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <GlassCard style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '4px', marginBottom: '8px', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
             <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: '600' }}>YOUR BALANCE</span>
-            <span style={{ fontSize: '1.15rem', fontWeight: '900', color: 'var(--accent-gold)' }}>
+            <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--accent-gold)' }}>
               ₹{wallet ? wallet.balance.toFixed(2) : '0.00'}
             </span>
           </div>
@@ -142,29 +131,7 @@ const Home = () => {
           </div>
         </GlassCard>
 
-        {/* How to play trigger card */}
-        <GlassCard 
-          onClick={() => setShowRules(true)}
-          interactive={true}
-          style={{ 
-            padding: '10px 14px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between', 
-            cursor: 'pointer',
-            border: '1px solid rgba(255,215,0,0.15)',
-            marginBottom: '8px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.1rem' }}>🎯</span>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#fff' }}>How to Play / Kaise Khein?</span>
-              <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Rules, winning multipliers & payouts</span>
-            </div>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: '800' }}>Rules →</span>
-        </GlassCard>
+
 
         {/* Today's Winners ticker */}
         <GlassCard style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', overflow: 'hidden' }}>
