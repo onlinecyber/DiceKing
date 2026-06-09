@@ -1,0 +1,248 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Colors */
+  --bg-primary: #0b0914;
+  --bg-secondary: #130f24;
+  --bg-tertiary: #1b1633;
+  --card-bg: rgba(31, 27, 53, 0.45);
+  --card-border: rgba(255, 255, 255, 0.08);
+  
+  --accent-gold: #ffd700;
+  --accent-gold-hover: #e6b800;
+  --accent-gold-glow: rgba(255, 215, 0, 0.2);
+  
+  --success-emerald: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.2);
+  
+  --danger-red: #ef4444;
+  --danger-glow: rgba(239, 68, 68, 0.2);
+  
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  
+  /* Font */
+  --font-sans: 'Outfit', sans-serif;
+  
+  /* Layout */
+  --bottom-nav-height: 72px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(27, 22, 51, 0.5) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(19, 15, 36, 0.8) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(11, 9, 20, 1) 0px, transparent 100%);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-panel-interactive {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.glass-panel-interactive:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 215, 0, 0.25);
+  box-shadow: 0 12px 40px 0 rgba(255, 215, 0, 0.05);
+}
+
+/* Buttons */
+.btn-gold {
+  background: linear-gradient(135deg, var(--accent-gold) 0%, #d4af37 100%);
+  color: #0b0914;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px var(--accent-gold-glow);
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.btn-gold:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f5d130 0%, #b8972f 100%);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+  transform: scale(1.02);
+}
+
+.btn-gold:disabled {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-muted);
+}
+
+/* Page Layout Wrappers */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-bottom: var(--bottom-nav-height);
+}
+
+.content-container {
+  flex: 1;
+  width: 100%;
+  max-width: 480px; /* Force mobile-first look on desktop */
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .content-container {
+    max-width: 600px;
+    padding: 24px 16px;
+  }
+}
+
+/* Animations */
+@keyframes dice-spin {
+  0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); }
+  30% { transform: rotateX(180deg) rotateY(360deg) rotateZ(90deg) scale(1.15); }
+  60% { transform: rotateX(360deg) rotateY(180deg) rotateZ(270deg) scale(1.1); }
+  100% { transform: rotateX(720deg) rotateY(720deg) rotateZ(360deg) scale(1); }
+}
+
+.rolling {
+  animation: dice-spin 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 10px var(--accent-gold-glow); }
+  50% { box-shadow: 0 0 25px var(--accent-gold); }
+}
+
+.pulse-active {
+  animation: pulse-gold 1.5s infinite;
+}
+
+@keyframes slide-in {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.toast-message {
+  animation: slide-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 3D Dice Styles */
+.dice-scene {
+  width: 90px;
+  height: 90px;
+  perspective: 600px;
+  margin: 10px;
+  display: inline-block;
+}
+
+.cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 1.2s cubic-bezier(0.25, 0.8, 0.25, 1.1);
+}
+
+.cube-face {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  background: radial-gradient(circle, #271f4b 0%, #130f24 100%);
+  border: 2px solid var(--accent-gold);
+  border-radius: 16px;
+  box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.1), 0 5px 15px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+/* 3D Transforms for Cube Layout (translateZ is half of width/height = 45px) */
+.face-1 { transform: rotateY(0deg) translateZ(45px); }
+.face-2 { transform: rotateY(180deg) translateZ(45px); }
+.face-3 { transform: rotateY(90deg) translateZ(45px); }
+.face-4 { transform: rotateY(-90deg) translateZ(45px); }
+.face-5 { transform: rotateX(90deg) translateZ(45px); }
+.face-6 { transform: rotateX(-90deg) translateZ(45px); }
+
+/* Rolling 3D spin keyframes */
+@keyframes spin-3d {
+  0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  50% { transform: rotateX(360deg) rotateY(180deg) rotateZ(180deg); }
+  100% { transform: rotateX(720deg) rotateY(1080deg) rotateZ(360deg); }
+}
+
+.cube-rolling {
+  animation: spin-3d 1s linear infinite;
+}
