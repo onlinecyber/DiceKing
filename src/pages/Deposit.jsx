@@ -6,6 +6,7 @@ import { useGame } from '../context/GameContext';
 import GlassCard from '../components/Common/GlassCard';
 import Navbar from '../components/Common/Navbar';
 import BottomNav from '../components/Common/BottomNav';
+// preview change for Vercel
 
 const inputStyle = {
   background: 'rgba(19,15,36,0.5)',
