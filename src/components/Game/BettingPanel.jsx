@@ -7,11 +7,11 @@ const BettingPanel = () => {
   const { activeRound, countdown, placeBet, recentBets, wallet } = useGame();
   
   // Local state
-  const [selectedChip, setSelectedChip] = useState(50); // Default chip value
+  const [modalState, setModalState] = useState({ isOpen: false, type: null, exactValue: null });
+  const [baseAmount, setBaseAmount] = useState(10);
+  const [quantity, setQuantity] = useState(1);
+  const [agreed, setAgreed] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [showExactGrid, setShowExactGrid] = useState(false);
-
-  const chips = [10, 50, 100, 500, 1000];
 
   // Betting state checks
   const isLocked = countdown <= 2 || !activeRound;
@@ -27,18 +27,27 @@ const BettingPanel = () => {
       .reduce((sum, b) => sum + b.amount, 0);
   };
 
-  const handleBetClick = async (type, exactValue = null) => {
+  const handleBetClick = (type, exactValue = null) => {
     if (isLocked) return;
-    if (loading) return;
+    setModalState({ isOpen: true, type, exactValue });
+    setQuantity(1);
+  };
 
-    if (!wallet || wallet.balance < selectedChip) {
+  const handleConfirmBet = async () => {
+    if (isLocked || loading) return;
+    if (!agreed) {
+      alert("Please agree to the rules");
+      return;
+    }
+    const total = baseAmount * quantity;
+    if (!wallet || wallet.balance < total) {
       alert("Insufficient balance!");
       return;
     }
-
     setLoading(true);
     try {
-      await placeBet(type, exactValue, selectedChip);
+      await placeBet(modalState.type, modalState.exactValue, total);
+      setModalState({ isOpen: false, type: null, exactValue: null });
     } catch (e) {
       console.error(e);
     } finally {
@@ -54,56 +63,6 @@ const BettingPanel = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
-      {/* 1. Chips Selector */}
-      <GlassCard style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600', letterSpacing: '1px' }}>
-          SELECT CHIP AMOUNT
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-          {chips.map(val => {
-            const isSelected = selectedChip === val;
-            const chipColors = {
-              10: { bg: '#3b82f6', border: '#60a5fa' },     // Blue
-              50: { bg: '#10b981', border: '#34d399' },    // Green
-              100: { bg: '#ef4444', border: '#f87171' },   // Red
-              500: { bg: '#8b5cf6', border: '#a78bfa' },   // Purple
-              1000: { bg: '#ffd700', border: '#fef08a' }   // Gold
-            };
-            const currentChip = chipColors[val];
-            return (
-              <button
-                key={val}
-                disabled={isLocked}
-                onClick={() => setSelectedChip(val)}
-                style={{
-                  flex: 1,
-                  aspectRatio: '1',
-                  borderRadius: '50%',
-                  background: isSelected 
-                    ? `radial-gradient(circle, ${currentChip.bg} 40%, #000 100%)` 
-                    : 'rgba(31, 27, 53, 0.3)',
-                  border: isSelected 
-                    ? `3px dashed ${currentChip.border}` 
-                    : `2px dashed rgba(255, 255, 255, 0.2)`,
-                  color: isSelected ? '#000' : 'var(--text-primary)',
-                  fontWeight: '800',
-                  fontSize: '0.8rem',
-                  cursor: isLocked ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: isSelected ? `0 0 15px ${currentChip.bg}` : 'none',
-                  transform: isSelected ? 'scale(1.08)' : 'none',
-                  transition: 'all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)'
-                }}
-              >
-                ₹{val}
-              </button>
-            );
-          })}
-        </div>
-      </GlassCard>
-
       {/* 2. Main Betting Options Grid */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         
@@ -340,6 +299,112 @@ const BettingPanel = () => {
           </GlassCard>
         )}
 
+      {/* Bet Modal */}
+      {modalState.isOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
+        }} onClick={() => setModalState({ isOpen: false, type: null, exactValue: null })}>
+          <div style={{
+            background: '#1f1b35', width: '100%', maxWidth: '450px',
+            borderTopLeftRadius: '24px', borderTopRightRadius: '24px',
+            padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px',
+            boxShadow: '0 -10px 40px rgba(0,0,0,0.5)'
+          }} onClick={e => e.stopPropagation()}>
+            
+            {/* Header */}
+            <div style={{
+              background: modalState.type === 'up' ? '#10b981' : 
+                          modalState.type === 'down' ? '#ef4444' : 
+                          modalState.type === 'odd' ? '#8b5cf6' :
+                          modalState.type === 'even' ? '#3b82f6' : '#4f46e5',
+              padding: '12px', borderRadius: '12px', textAlign: 'center',
+              color: '#fff', fontWeight: '800', fontSize: '1.2rem', textTransform: 'capitalize',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+            }}>
+              Select {modalState.type}
+            </div>
+
+            {/* Base Amount Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.95rem', color: '#fff', fontWeight: '600' }}>Balance</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[10, 100, 500, 1000].map(amt => (
+                  <button key={amt} onClick={() => setBaseAmount(amt)}
+                    style={{
+                      background: baseAmount === amt ? '#4f46e5' : '#2b2640',
+                      color: baseAmount === amt ? '#fff' : '#a7a3b9',
+                      border: 'none', padding: '8px 14px', borderRadius: '6px',
+                      fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer'
+                    }}>
+                    {amt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quantity Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.95rem', color: '#fff', fontWeight: '600' }}>Quantity</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  style={{ background: '#4f46e5', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '6px', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>-</button>
+                <input type="number" value={quantity} onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  style={{ background: '#2b2640', border: 'none', color: '#fff', width: '60px', height: '32px', textAlign: 'center', borderRadius: '6px', fontWeight: '800', fontSize: '1rem' }} />
+                <button onClick={() => setQuantity(quantity + 1)}
+                  style={{ background: '#4f46e5', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '6px', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+              </div>
+            </div>
+
+            {/* Multipliers */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+              {[1, 5, 10, 20, 50, 100].map(x => (
+                <button key={x} onClick={() => setQuantity(x)}
+                  style={{
+                    background: quantity === x ? '#4f46e5' : '#2b2640',
+                    color: quantity === x ? '#fff' : '#a7a3b9',
+                    border: 'none', padding: '6px 10px', borderRadius: '4px',
+                    fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer'
+                  }}>
+                  X{x}
+                </button>
+              ))}
+            </div>
+
+            {/* Terms */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+              <div 
+                onClick={() => setAgreed(!agreed)}
+                style={{
+                  width: '20px', height: '20px', borderRadius: '50%',
+                  background: agreed ? '#4f46e5' : 'transparent',
+                  border: agreed ? 'none' : '2px solid #6b7280',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                {agreed && <span style={{ color: '#fff', fontSize: '12px' }}>✓</span>}
+              </div>
+              <span style={{ fontSize: '0.85rem', color: '#fff' }}>
+                I agree <span style={{ color: '#ef4444', cursor: 'pointer' }}>《Pre-sale rules》</span>
+              </span>
+            </div>
+
+            {/* Footer Buttons */}
+            <div style={{ display: 'flex', gap: '0', marginTop: '15px', borderRadius: '8px', overflow: 'hidden' }}>
+              <button onClick={() => setModalState({ isOpen: false, type: null, exactValue: null })}
+                style={{ flex: 1, padding: '14px', background: '#2b2640', border: 'none', color: '#fff', fontWeight: '700', cursor: 'pointer', fontSize: '0.95rem' }}>
+                Cancel
+              </button>
+              <button onClick={handleConfirmBet} disabled={loading || !agreed}
+                style={{ flex: 2, padding: '14px', background: '#4f46e5', border: 'none', color: '#fff', fontWeight: '800', opacity: (!agreed || loading) ? 0.5 : 1, cursor: (!agreed || loading) ? 'not-allowed' : 'pointer', fontSize: '0.95rem' }}>
+                Total amount ₹{(baseAmount * quantity).toFixed(2)}
+              </button>
+            </div>
+            
+          </div>
+        </div>
       </div>
     </div>
   );
