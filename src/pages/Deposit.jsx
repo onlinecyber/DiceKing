@@ -1,4 +1,4 @@
-// dummy redeploy trigger
+// redeploy trigger at 2026-06-09T11:48:00+05:30
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Copy, Check, Zap, Info, CreditCard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
