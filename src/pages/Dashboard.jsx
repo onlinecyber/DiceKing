@@ -13,7 +13,7 @@ import GlassCard from '../components/Common/GlassCard';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { wallet, recentBets, activeRound, countdown } = useGame();
+  const { wallet, activeRound, countdown } = useGame();
   const [copied, setCopied] = useState(false);
 
   const handleCopyReferral = () => {
