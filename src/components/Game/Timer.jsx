@@ -58,7 +58,21 @@ const Timer = () => {
         </div>
         
         <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '8px', letterSpacing: '0.5px' }}>
-          {activeRound ? activeRound.roundNumber : 'Loading...'}
+          {activeRound ? (() => {
+            let date = new Date();
+            if (activeRound.createdAt) {
+              if (typeof activeRound.createdAt.toMillis === 'function') {
+                date = new Date(activeRound.createdAt.toMillis());
+              } else if (activeRound.createdAt.seconds) {
+                date = new Date(activeRound.createdAt.seconds * 1000);
+              } else {
+                date = new Date(activeRound.createdAt);
+              }
+            }
+            const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+            const dateStr = formatter.format(date).replace(/-/g, '');
+            return `${dateStr}000${activeRound.roundNumber}`;
+          })() : 'Loading...'}
         </div>
       </div>
     </GlassCard>

@@ -55,7 +55,23 @@ const HistoryList = () => {
                     fontSize: '0.8rem'
                   }}
                 >
-                  <td style={{ padding: '10px 0', color: 'var(--text-secondary)' }}>{String(r.roundNumber).slice(-4)}</td>
+                  <td style={{ padding: '10px 0', color: 'var(--text-secondary)' }}>
+                    {(() => {
+                      let date = new Date();
+                      if (r.createdAt) {
+                        if (typeof r.createdAt.toMillis === 'function') {
+                          date = new Date(r.createdAt.toMillis());
+                        } else if (r.createdAt.seconds) {
+                          date = new Date(r.createdAt.seconds * 1000);
+                        } else {
+                          date = new Date(r.createdAt);
+                        }
+                      }
+                      const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+                      const dateStr = formatter.format(date).replace(/-/g, '');
+                      return `${dateStr}000${r.roundNumber}`;
+                    })()}
+                  </td>
                   <td style={{ padding: '10px 0', letterSpacing: '1px' }}>🎲{r.dice1} 🎲{r.dice2}</td>
                   <td style={{ padding: '10px 0', fontWeight: '800', textAlign: 'center' }}>
                     <span style={{ 
