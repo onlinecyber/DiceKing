@@ -921,6 +921,23 @@ app.post('/api/adminRejectWithdrawal', decodeToken, requireAuth, handleRequest(a
 app.post('/api/getAdminDashboardStats', decodeToken, requireAuth, handleRequest(getAdminDashboardStats));
 app.post('/api/applyReferralCode', decodeToken, requireAuth, handleRequest(applyReferralCode));
 
+app.get('/api/testDb', async (req, res) => {
+  try {
+    const roundsSnap = await db.collection('gameRounds').orderBy('createdAt', 'desc').limit(5).get();
+    const rounds = roundsSnap.docs.map(doc => {
+      const data = doc.data();
+      // Convert timestamps to ISO string for JSON serialization
+      if (data.createdAt && data.createdAt.toDate) data.createdAt = data.createdAt.toDate().toISOString();
+      if (data.startTime && data.startTime.toDate) data.startTime = data.startTime.toDate().toISOString();
+      if (data.endTime && data.endTime.toDate) data.endTime = data.endTime.toDate().toISOString();
+      return data;
+    });
+    res.json({ success: true, rounds });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Fallback Route
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
