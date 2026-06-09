@@ -15,9 +15,16 @@ if (process.env.FIRESTORE_EMULATOR_HOST || process.env.VITE_USE_FIREBASE_EMULATO
   console.log("Connected to local Firebase Emulators!");
 } else {
   // Production Mode
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY 
-    ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') 
-    : undefined;
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (privateKey) {
+    privateKey = privateKey.trim();
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
+    } else if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
+      privateKey = privateKey.slice(1, -1);
+    }
+    privateKey = privateKey.replace(/\\n/g, '\n');
+  }
     
   admin.initializeApp({
     credential: admin.credential.cert({
