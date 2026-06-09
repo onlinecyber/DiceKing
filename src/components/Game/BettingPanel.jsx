@@ -298,6 +298,7 @@ const BettingPanel = () => {
             </div>
           </GlassCard>
         )}
+      </div>
 
       {/* Bet Modal */}
       {modalState.isOpen && (
@@ -405,7 +406,7 @@ const BettingPanel = () => {
             
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
