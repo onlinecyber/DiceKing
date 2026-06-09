@@ -8,7 +8,7 @@ const Timer = () => {
   const secs = countdown < 0 ? 0 : countdown;
   const timeString = `00:${secs.toString().padStart(2, '0')}`;
   
-  const recentRounds = history.slice(0, 5);
+  const recentRounds = (history || []).slice(0, 5);
   
   const getRoundBadgeStyles = (total) => {
     if (total > 7) return { bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.4)', text: 'var(--success-emerald)' };

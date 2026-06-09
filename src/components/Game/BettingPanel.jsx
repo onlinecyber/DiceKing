@@ -236,68 +236,7 @@ const BettingPanel = () => {
 
 
 
-        {/* Exact Values Grid */}
-        {showExactGrid && (
-          <GlassCard style={{ padding: '12px' }}>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(4, 1fr)', 
-              gap: '8px', 
-              maxHeight: '200px', 
-              overflowY: 'auto',
-              padding: '4px'
-            }}>
-              {Object.entries(exactMultipliers).map(([num, mult]) => {
-                const n = Number(num);
-                const activeBetAmount = getBetAmountOnType('exact', n);
-                return (
-                  <button
-                    key={num}
-                    disabled={isLocked || loading}
-                    onClick={() => handleBetClick('exact', n)}
-                    style={{
-                      background: activeBetAmount > 0 ? 'rgba(255, 215, 0, 0.1)' : 'rgba(19, 15, 36, 0.5)',
-                      border: activeBetAmount > 0 
-                        ? '1px solid var(--accent-gold)' 
-                        : '1px solid rgba(255,255,255,0.05)',
-                      borderRadius: '12px',
-                      padding: '8px 4px',
-                      color: 'var(--text-primary)',
-                      cursor: isLocked ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      position: 'relative'
-                    }}
-                  >
-                    <span style={{ fontSize: '1rem', fontWeight: '800', color: activeBetAmount > 0 ? 'var(--accent-gold)' : 'inherit' }}>
-                      {num}
-                    </span>
-                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
-                      {mult}x
-                    </span>
 
-                    {/* Badge */}
-                    {activeBetAmount > 0 && (
-                      <span style={{
-                        position: 'absolute',
-                        bottom: '-4px',
-                        background: 'var(--accent-gold)',
-                        color: '#000',
-                        fontSize: '0.5rem',
-                        fontWeight: '800',
-                        padding: '1px 3px',
-                        borderRadius: '4px'
-                      }}>
-                        ₹{activeBetAmount}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </GlassCard>
-        )}
       </div>
 
       {/* Bet Modal */}
