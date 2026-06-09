@@ -262,133 +262,74 @@ const placeBet = async (data, context) => {
   });
 };
 
+let settlementLock = false;
+
 const settleRoundAndStartNew = async (data, context) => {
   console.log("settleRoundAndStartNew called.");
-  const activeRoundsQuery = db.collection('gameRounds').where('status', '==', 'active').limit(1);
+  if (settlementLock) {
+    console.log("Settlement already in progress, skipping.");
+    return { success: false, message: 'Settlement already in progress.' };
+  }
 
-  return db.runTransaction(async (transaction) => {
-    const activeRoundsSnap = await transaction.get(activeRoundsQuery);
-    const now = Timestamp.now();
+  settlementLock = true;
+  try {
+    const activeRoundsQuery = db.collection('gameRounds').where('status', '==', 'active').limit(1);
 
-    if (activeRoundsSnap.empty) {
-      console.log("No active round found. Bootstrapping initial round.");
-      const nextRoundNumber = 1;
-      const endTime = Timestamp.fromMillis(now.toMillis() + 30000);
-      const newRoundRef = db.collection('gameRounds').doc();
-      
-      transaction.set(newRoundRef, {
-        id: newRoundRef.id,
-        roundNumber: nextRoundNumber,
-        status: 'active',
-        startTime: now,
-        endTime: endTime,
-        dice1: null,
-        dice2: null,
-        total: null,
-        resultType: null,
-        createdAt: now
-      });
-      return { success: true, message: 'Created initial active round.' };
-    }
+    const result = await db.runTransaction(async (transaction) => {
+      const activeRoundsSnap = await transaction.get(activeRoundsQuery);
+      const now = Timestamp.now();
 
-    const activeRoundDoc = activeRoundsSnap.docs[0];
-    const activeRound = activeRoundDoc.data();
-    console.log(`Active round found: #${activeRound.roundNumber}, ID: ${activeRound.id}, EndTime: ${activeRound.endTime.toMillis()}, Now: ${now.toMillis()}`);
-
-    if (now.toMillis() + 2000 < activeRound.endTime.toMillis()) {
-      console.log(`Round #${activeRound.roundNumber} is still active. Remaining time: ${activeRound.endTime.toMillis() - now.toMillis()}ms`);
-      return { success: false, message: 'Current round is still active.', activeRound };
-    }
-
-    console.log(`Settling round #${activeRound.roundNumber}...`);
-
-    const betsQuery = db.collection('bets')
-      .where('roundId', '==', activeRound.id)
-      .where('status', '==', 'pending');
-    const betsSnap = await transaction.get(betsQuery);
-
-    const DICE_PAIRS_BY_SUM = {
-      3: [[1, 2], [2, 1]],
-      4: [[1, 3], [2, 2], [3, 1]],
-      5: [[1, 4], [2, 3], [3, 2], [4, 1]],
-      6: [[1, 5], [2, 4], [3, 3], [4, 2], [5, 1]],
-      7: [[1, 6], [2, 5], [3, 4], [4, 3], [5, 2], [6, 1]],
-      8: [[2, 6], [3, 5], [4, 4], [5, 3], [6, 2]],
-      9: [[3, 6], [4, 5], [5, 4], [6, 3]],
-      10: [[4, 6], [5, 5], [6, 4]],
-      11: [[5, 6], [6, 5]]
-    };
-
-    const getExactMultiplier = (num) => {
-      switch (num) {
-        case 3: case 11: return 15.0;
-        case 4: case 10: return 10.0;
-        case 5: case 9: return 8.0;
-        case 6: case 8: return 6.0;
-        case 7: return 5.0;
-        default: return 0.0;
-      }
-    };
-
-    const candidateSums = [3, 4, 5, 6, 7, 8, 9, 10, 11];
-    const payoutsBySum = {};
-
-    candidateSums.forEach(S => {
-      let totalPayout = 0;
-      betsSnap.docs.forEach(doc => {
-        const bet = doc.data();
-        let multiplier = 0;
+      if (activeRoundsSnap.empty) {
+        console.log("No active round found. Bootstrapping initial round.");
+        const nextRoundNumber = 1;
+        const endTime = Timestamp.fromMillis(now.toMillis() + 30000);
+        const newRoundRef = db.collection('gameRounds').doc();
         
-        if (bet.type === 'up' && S >= 8) {
-          multiplier = 2.0;
-        } else if (bet.type === 'down' && S <= 6) {
-          multiplier = 2.0;
-        } else if (bet.type === 'odd' && S % 2 !== 0) {
-          multiplier = 1.9;
-        } else if (bet.type === 'even' && S % 2 === 0) {
-          multiplier = 1.9;
-        } else if (bet.type === 'exact' && bet.exactValue === S) {
-          multiplier = getExactMultiplier(S);
-        }
-
-        if (multiplier > 0) {
-          totalPayout += bet.amount * multiplier;
-        }
-      });
-      payoutsBySum[S] = totalPayout;
-    });
-
-    let minPayout = Infinity;
-    candidateSums.forEach(S => {
-      if (payoutsBySum[S] < minPayout) {
-        minPayout = payoutsBySum[S];
+        transaction.set(newRoundRef, {
+          id: newRoundRef.id,
+          roundNumber: nextRoundNumber,
+          status: 'active',
+          startTime: now,
+          endTime: endTime,
+          dice1: null,
+          dice2: null,
+          total: null,
+          resultType: null,
+          createdAt: now
+        });
+        return { success: true, message: 'Created initial active round.' };
       }
-    });
 
-    const bestSums = candidateSums.filter(S => payoutsBySum[S] === minPayout);
-    const chosenSum = bestSums[Math.floor(Math.random() * bestSums.length)];
+      const activeRoundDoc = activeRoundsSnap.docs[0];
+      const activeRound = activeRoundDoc.data();
+      console.log(`Active round found: #${activeRound.roundNumber}, ID: ${activeRound.id}, EndTime: ${activeRound.endTime.toMillis()}, Now: ${now.toMillis()}`);
 
-    const pairs = DICE_PAIRS_BY_SUM[chosenSum];
-    const chosenPair = pairs[Math.floor(Math.random() * pairs.length)];
-    const dice1 = chosenPair[0];
-    const dice2 = chosenPair[1];
-    const total = chosenSum;
+      if (now.toMillis() + 2000 < activeRound.endTime.toMillis()) {
+        console.log(`Round #${activeRound.roundNumber} is still active. Remaining time: ${activeRound.endTime.toMillis() - now.toMillis()}ms`);
+        return { success: false, message: 'Current round is still active.', activeRound };
+      }
 
-    const upDown = total > 7 ? 'up' : (total < 7 ? 'down' : 'seven');
-    const oddEven = total % 2 === 0 ? 'even' : 'odd';
+      console.log(`Settling round #${activeRound.roundNumber}...`);
 
-    const betsToUpdate = [];
-    const walletsToUpdate = {};
-    const leaderboardToUpdate = {};
+      const betsQuery = db.collection('bets')
+        .where('roundId', '==', activeRound.id)
+        .where('status', '==', 'pending');
+      const betsSnap = await transaction.get(betsQuery);
 
-    const getMultiplier = (type, exactValue) => {
-      if (type === 'up' && total >= 8 && total <= 12) return 2.0;
-      if (type === 'down' && total >= 2 && total <= 6) return 2.0;
-      if (type === 'odd' && oddEven === 'odd') return 1.9;
-      if (type === 'even' && oddEven === 'even') return 1.9;
-      if (type === 'exact' && exactValue === total) {
-        switch (total) {
-          case 2: case 12: return 30.0;
+      const DICE_PAIRS_BY_SUM = {
+        3: [[1, 2], [2, 1]],
+        4: [[1, 3], [2, 2], [3, 1]],
+        5: [[1, 4], [2, 3], [3, 2], [4, 1]],
+        6: [[1, 5], [2, 4], [3, 3], [4, 2], [5, 1]],
+        7: [[1, 6], [2, 5], [3, 4], [4, 3], [5, 2], [6, 1]],
+        8: [[2, 6], [3, 5], [4, 4], [5, 3], [6, 2]],
+        9: [[3, 6], [4, 5], [5, 4], [6, 3]],
+        10: [[4, 6], [5, 5], [6, 4]],
+        11: [[5, 6], [6, 5]]
+      };
+
+      const getExactMultiplier = (num) => {
+        switch (num) {
           case 3: case 11: return 15.0;
           case 4: case 10: return 10.0;
           case 5: case 9: return 8.0;
@@ -396,117 +337,192 @@ const settleRoundAndStartNew = async (data, context) => {
           case 7: return 5.0;
           default: return 0.0;
         }
-      }
-      return 0.0;
-    };
+      };
 
-    for (const doc of betsSnap.docs) {
-      const bet = doc.data();
-      const multiplier = getMultiplier(bet.type, bet.exactValue);
-      const won = multiplier > 0;
-      const grossPayout = won ? bet.amount * multiplier : 0;
-      const payout = won ? Math.round(grossPayout * 0.95 * 100) / 100 : 0;
+      const candidateSums = [3, 4, 5, 6, 7, 8, 9, 10, 11];
+      const payoutsBySum = {};
 
-      betsToUpdate.push({
-        ref: doc.ref,
-        status: won ? 'won' : 'lost',
-        payout
+      candidateSums.forEach(S => {
+        let totalPayout = 0;
+        betsSnap.docs.forEach(doc => {
+          const bet = doc.data();
+          let multiplier = 0;
+          
+          if (bet.type === 'up' && S >= 8) {
+            multiplier = 2.0;
+          } else if (bet.type === 'down' && S <= 6) {
+            multiplier = 2.0;
+          } else if (bet.type === 'odd' && S % 2 !== 0) {
+            multiplier = 1.9;
+          } else if (bet.type === 'even' && S % 2 === 0) {
+            multiplier = 1.9;
+          } else if (bet.type === 'exact' && bet.exactValue === S) {
+            multiplier = getExactMultiplier(S);
+          }
+
+          if (multiplier > 0) {
+            totalPayout += bet.amount * multiplier;
+          }
+        });
+        payoutsBySum[S] = totalPayout;
       });
 
-      if (won) {
-        if (!walletsToUpdate[bet.uid]) {
-          walletsToUpdate[bet.uid] = 0;
+      let minPayout = Infinity;
+      candidateSums.forEach(S => {
+        if (payoutsBySum[S] < minPayout) {
+          minPayout = payoutsBySum[S];
         }
-        walletsToUpdate[bet.uid] += payout;
-
-        if (!leaderboardToUpdate[bet.uid]) {
-          leaderboardToUpdate[bet.uid] = { displayName: bet.displayName, winnings: 0 };
-        }
-        leaderboardToUpdate[bet.uid].winnings += payout;
-      }
-    }
-
-    for (const update of betsToUpdate) {
-      transaction.update(update.ref, {
-        status: update.status,
-        payout: update.payout
       });
-    }
 
-    for (const [uid, payout] of Object.entries(walletsToUpdate)) {
-      const walletRef = db.collection('wallets').doc(uid);
-      const walletSnap = await transaction.get(walletRef);
-      if (walletSnap.exists) {
-        transaction.update(walletRef, {
-          balance: walletSnap.data().balance + payout,
-          updatedAt: now
+      const bestSums = candidateSums.filter(S => payoutsBySum[S] === minPayout);
+      const chosenSum = bestSums[Math.floor(Math.random() * bestSums.length)];
+
+      const pairs = DICE_PAIRS_BY_SUM[chosenSum];
+      const chosenPair = pairs[Math.floor(Math.random() * pairs.length)];
+      const dice1 = chosenPair[0];
+      const dice2 = chosenPair[1];
+      const total = chosenSum;
+
+      const upDown = total > 7 ? 'up' : (total < 7 ? 'down' : 'seven');
+      const oddEven = total % 2 === 0 ? 'even' : 'odd';
+
+      const betsToUpdate = [];
+      const walletsToUpdate = {};
+      const leaderboardToUpdate = {};
+
+      const getMultiplier = (type, exactValue) => {
+        if (type === 'up' && total >= 8 && total <= 12) return 2.0;
+        if (type === 'down' && total >= 2 && total <= 6) return 2.0;
+        if (type === 'odd' && oddEven === 'odd') return 1.9;
+        if (type === 'even' && oddEven === 'even') return 1.9;
+        if (type === 'exact' && exactValue === total) {
+          switch (total) {
+            case 2: case 12: return 30.0;
+            case 3: case 11: return 15.0;
+            case 4: case 10: return 10.0;
+            case 5: case 9: return 8.0;
+            case 6: case 8: return 6.0;
+            case 7: return 5.0;
+            default: return 0.0;
+          }
+        }
+        return 0.0;
+      };
+
+      for (const doc of betsSnap.docs) {
+        const bet = doc.data();
+        const multiplier = getMultiplier(bet.type, bet.exactValue);
+        const won = multiplier > 0;
+        const grossPayout = won ? bet.amount * multiplier : 0;
+        const payout = won ? Math.round(grossPayout * 0.95 * 100) / 100 : 0;
+
+        betsToUpdate.push({
+          ref: doc.ref,
+          status: won ? 'won' : 'lost',
+          payout
+        });
+
+        if (won) {
+          if (!walletsToUpdate[bet.uid]) {
+            walletsToUpdate[bet.uid] = 0;
+          }
+          walletsToUpdate[bet.uid] += payout;
+
+          if (!leaderboardToUpdate[bet.uid]) {
+            leaderboardToUpdate[bet.uid] = { displayName: bet.displayName, winnings: 0 };
+          }
+          leaderboardToUpdate[bet.uid].winnings += payout;
+        }
+      }
+
+      for (const update of betsToUpdate) {
+        transaction.update(update.ref, {
+          status: update.status,
+          payout: update.payout
         });
       }
 
-      const txRef = db.collection('transactions').doc();
-      transaction.set(txRef, {
-        id: txRef.id,
-        uid,
-        amount: payout,
-        type: 'bet_win',
-        status: 'success',
-        description: `Payout for winning bet in Round #${activeRound.roundNumber} (5% GST Deducted)`,
-        referenceId: activeRound.id,
+      for (const [uid, payout] of Object.entries(walletsToUpdate)) {
+        const walletRef = db.collection('wallets').doc(uid);
+        const walletSnap = await transaction.get(walletRef);
+        if (walletSnap.exists) {
+          transaction.update(walletRef, {
+            balance: walletSnap.data().balance + payout,
+            updatedAt: now
+          });
+        }
+
+        const txRef = db.collection('transactions').doc();
+        transaction.set(txRef, {
+          id: txRef.id,
+          uid,
+          amount: payout,
+          type: 'bet_win',
+          status: 'success',
+          description: `Payout for winning bet in Round #${activeRound.roundNumber} (5% GST Deducted)`,
+          referenceId: activeRound.id,
+          createdAt: now
+        });
+      }
+
+      for (const [uid, data] of Object.entries(leaderboardToUpdate)) {
+        const lbRef = db.collection('leaderboard').doc(uid);
+        const lbSnap = await transaction.get(lbRef);
+        if (lbSnap.exists) {
+          transaction.update(lbRef, {
+            totalWinnings: lbSnap.data().totalWinnings + data.winnings,
+            updatedAt: now
+          });
+        } else {
+          transaction.set(lbRef, {
+            uid,
+            displayName: data.displayName,
+            totalWinnings: data.winnings,
+            updatedAt: now
+          });
+        }
+      }
+
+      transaction.update(activeRoundDoc.ref, {
+        status: 'completed',
+        dice1,
+        dice2,
+        total,
+        resultType: {
+          upDown,
+          oddEven
+        }
+      });
+
+      const newRoundRef = db.collection('gameRounds').doc();
+      const newEndTime = Timestamp.fromMillis(now.toMillis() + 30000);
+      transaction.set(newRoundRef, {
+        id: newRoundRef.id,
+        roundNumber: activeRound.roundNumber + 1,
+        status: 'active',
+        startTime: now,
+        endTime: newEndTime,
+        dice1: null,
+        dice2: null,
+        total: null,
+        resultType: null,
         createdAt: now
       });
-    }
 
-    for (const [uid, data] of Object.entries(leaderboardToUpdate)) {
-      const lbRef = db.collection('leaderboard').doc(uid);
-      const lbSnap = await transaction.get(lbRef);
-      if (lbSnap.exists) {
-        transaction.update(lbRef, {
-          totalWinnings: lbSnap.data().totalWinnings + data.winnings,
-          updatedAt: now
-        });
-      } else {
-        transaction.set(lbRef, {
-          uid,
-          displayName: data.displayName,
-          totalWinnings: data.winnings,
-          updatedAt: now
-        });
-      }
-    }
-
-    transaction.update(activeRoundDoc.ref, {
-      status: 'completed',
-      dice1,
-      dice2,
-      total,
-      resultType: {
-        upDown,
-        oddEven
-      }
+      return {
+        success: true,
+        settledRound: activeRound.id,
+        rolled: { dice1, dice2, total },
+        newRoundId: newRoundRef.id
+      };
     });
-
-    const newRoundRef = db.collection('gameRounds').doc();
-    const newEndTime = Timestamp.fromMillis(now.toMillis() + 30000);
-    transaction.set(newRoundRef, {
-      id: newRoundRef.id,
-      roundNumber: activeRound.roundNumber + 1,
-      status: 'active',
-      startTime: now,
-      endTime: newEndTime,
-      dice1: null,
-      dice2: null,
-      total: null,
-      resultType: null,
-      createdAt: now
-    });
-
-    return {
-      success: true,
-      settledRound: activeRound.id,
-      rolled: { dice1, dice2, total },
-      newRoundId: newRoundRef.id
-    };
-  });
+    return result;
+  } catch (error) {
+    console.error("Error in settleRoundAndStartNew transaction:", error);
+    throw error;
+  } finally {
+    settlementLock = false;
+  }
 };
 
 const submitDepositRequest = async (data, context) => {
