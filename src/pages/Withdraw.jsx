@@ -35,6 +35,7 @@ const Withdraw = () => {
   const [bankName, setBankName] = useState('');
   const [existingBanks, setExistingBanks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [bankSaved, setBankSaved] = useState(false); // track if bank details saved
 
   // Fetch existing bank accounts to prevent duplicates
   useEffect(() => {
@@ -54,6 +55,37 @@ const Withdraw = () => {
     };
     fetchBanks();
   }, [currentUser]);
+
+  // Save bank details without withdrawal
+  const handleSaveBank = async () => {
+    if (!bankAcc.trim() || !bankIfsc.trim() || !bankName.trim()) {
+      const msg = 'Please fill all bank details (Account No, IFSC, Bank Name).';
+      showToast ? showToast(msg, 'error') : alert(msg);
+      return;
+    }
+    const duplicate = existingBanks.some(
+      (b) => b.accountNumber === bankAcc.trim() && b.ifsc === bankIfsc.trim()
+    );
+    if (duplicate) {
+      const msg = 'This bank account is already added to your profile.';
+      showToast ? showToast(msg, 'error') : alert(msg);
+      return;
+    }
+    try {
+      await addDoc(collection(db, 'bankAccounts'), {
+        uid: currentUser.uid,
+        accountNumber: bankAcc.trim(),
+        ifsc: bankIfsc.trim(),
+        bankName: bankName.trim(),
+        createdAt: serverTimestamp(),
+      });
+      setBankSaved(true);
+      showToast ? showToast('Bank details saved!', 'success') : alert('Bank details saved!');
+    } catch (e) {
+      console.error('Failed to save bank account', e);
+      showToast ? showToast('Failed to save bank details.', 'error') : alert('Failed to save bank details.');
+    }
+  };
 
   const minWithdrawal = appSettings?.minWithdrawal || 100;
   const numAmount = Number(amount);
@@ -343,6 +375,22 @@ const Withdraw = () => {
                   onChange={(e) => setBankName(e.target.value)}
                   style={inputStyle}
                 />
+                {/* Save Bank Details Button */}
+                <button
+                  type="button"
+                  onClick={handleSaveBank}
+                  disabled={loading || bankSaved}
+                  className="btn-outline"
+                  style={{
+                    marginTop: '8px',
+                    width: '100%',
+                    padding: '10px',
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  {bankSaved ? 'Saved' : 'Save Bank Details'}
+                </button>
               </div>
             )}
 
