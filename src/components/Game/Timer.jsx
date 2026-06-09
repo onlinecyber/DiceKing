@@ -1,112 +1,67 @@
 import React from 'react';
-import { Hourglass } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import GlassCard from '../Common/GlassCard';
 
 const Timer = () => {
-  const { countdown, settling } = useGame();
+  const { countdown, settling, history, activeRound } = useGame();
   
-  const totalDuration = 30; // 30 second rounds
-  const radius = 28;
-  const stroke = 4;
-  const normalizedRadius = radius - stroke * 2;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (countdown / totalDuration) * circumference;
-
-  // Determine timer status color
-  const getTimerColor = () => {
-    if (settling) return 'var(--text-muted)';
-    if (countdown <= 5) return 'var(--danger-red)';
-    if (countdown <= 10) return '#f59e0b'; // amber
-    return 'var(--accent-gold)';
+  const secs = countdown < 0 ? 0 : countdown;
+  const timeString = `00:${secs.toString().padStart(2, '0')}`;
+  
+  const recentRounds = history.slice(0, 5);
+  
+  const getRoundBadgeStyles = (total) => {
+    if (total > 7) return { bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.4)', text: 'var(--success-emerald)' };
+    if (total < 7) return { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', text: 'var(--danger-red)' };
+    return { bg: 'rgba(255, 215, 0, 0.15)', border: 'rgba(255, 215, 0, 0.4)', text: 'var(--accent-gold)' };
   };
 
-  const timerColor = getTimerColor();
-
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '12px 18px',
-      background: 'rgba(31, 27, 53, 0.3)',
-      border: '1px solid rgba(255, 255, 255, 0.05)',
-      borderRadius: '16px',
-      width: '100%'
-    }}>
-      {/* Label section */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <Hourglass 
-          size={18} 
-          color={timerColor}
-          style={{
-            animation: countdown <= 5 && !settling ? 'dice-spin 1.5s linear infinite' : 'none'
-          }}
-        />
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ROUND TIMER</span>
-          <span style={{ 
-            fontSize: '0.9rem', 
-            fontWeight: '700',
-            color: countdown <= 2 ? 'var(--danger-red)' : 'var(--text-primary)'
-          }}>
-            {settling ? 'Settling...' : countdown <= 2 ? 'Betting Locked' : 'Place Your Bets'}
-          </span>
+    <GlassCard style={{ padding: '14px', display: 'flex', justifyContent: 'space-between' }}>
+      {/* Left Side: Recent Outcomes */}
+      <div style={{ flex: 1, borderRight: '1px solid rgba(255,255,255,0.05)', paddingRight: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          <span style={{ fontSize: '0.9rem' }}>📜</span> How to play
+        </div>
+        <div style={{ fontSize: '0.8rem', color: '#fff', fontWeight: '600', margin: '4px 0' }}>
+          WinGo 30sec
+        </div>
+        <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+          {recentRounds.map((r, idx) => {
+            const styles = getRoundBadgeStyles(r.total);
+            return (
+              <div key={r.id || idx} style={{
+                width: '22px', height: '22px', borderRadius: '50%',
+                background: styles.bg, border: `1px solid ${styles.border}`, color: styles.text,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '800'
+              }}>
+                {r.total}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Circle countdown visualizer */}
-      <div style={{ position: 'relative', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyItems: 'center' }}>
-        <svg
-          height="56"
-          width="56"
-          style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
-        >
-          {/* Background circle */}
-          <circle
-            stroke="rgba(255, 255, 255, 0.05)"
-            fill="transparent"
-            strokeWidth={stroke}
-            r={normalizedRadius}
-            cx="28"
-            cy="28"
-          />
-          {/* Active progress ring */}
-          <circle
-            stroke={timerColor}
-            fill="transparent"
-            strokeWidth={stroke}
-            strokeDasharray={circumference + ' ' + circumference}
-            style={{ 
-              strokeDashoffset,
-              transition: 'stroke-dashoffset 1s linear, stroke 0.3s ease',
-              filter: countdown <= 10 && !settling ? `drop-shadow(0 0 4px ${timerColor})` : 'none'
-            }}
-            r={normalizedRadius}
-            cx="28"
-            cy="28"
-          />
-        </svg>
-
-        {/* Text centered inside progress ring */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '0.9rem',
-          fontWeight: '800',
-          color: timerColor,
-          fontVariantNumeric: 'tabular-nums',
-          animation: countdown <= 5 && !settling ? 'pulse-gold 1s infinite' : 'none'
-        }}>
-          {settling ? '0s' : `${countdown}s`}
+      {/* Right Side: Timer & Round Number */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', paddingLeft: '12px' }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+          Time remaining
+        </div>
+        
+        {/* Timer Blocks */}
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', fontSize: '1.2rem', fontWeight: '800', color: countdown <= 5 ? 'var(--danger-red)' : '#fff' }}>
+          <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>0</div>
+          <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>0</div>
+          <span style={{ margin: '0 2px' }}>:</span>
+          <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>{timeString[3]}</div>
+          <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>{timeString[4]}</div>
+        </div>
+        
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '8px', letterSpacing: '0.5px' }}>
+          {activeRound ? activeRound.roundNumber : 'Loading...'}
         </div>
       </div>
-    </div>
+    </GlassCard>
   );
 };
 
