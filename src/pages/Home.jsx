@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Timer from '../components/Game/Timer';
 import DiceBoard from '../components/Game/DiceBoard';
 import BettingPanel from '../components/Game/BettingPanel';
-
+import HistoryList from '../components/Game/HistoryList';
 import Navbar from '../components/Common/Navbar';
 import BottomNav from '../components/Common/BottomNav';
 import GlassCard from '../components/Common/GlassCard';
@@ -163,50 +163,10 @@ const Home = () => {
         {/* 3. Betting Choices Board */}
         <BettingPanel />
 
+        {/* 4. Swipable Recent Roll History */}
+        <HistoryList />
 
 
-        {/* 5. Leaderboard Preview */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px', paddingBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '4px' }}>
-            <h3 style={{ fontSize: '0.85rem', fontWeight: '700', letterSpacing: '1px', color: 'var(--text-secondary)' }}>
-              🏆 TOP WINNERS
-            </h3>
-            <button 
-              onClick={() => navigate('/leaderboard')}
-              style={{ background: 'transparent', border: 'none', color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
-            >
-              View All
-            </button>
-          </div>
-
-          <GlassCard style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {leaderboard && leaderboard.slice(0, 3).length > 0 ? (
-              leaderboard.slice(0, 3).map((w, i) => (
-                <div key={w.uid || i} style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: i < 2 ? '8px' : '0', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    background: i === 0 ? 'rgba(255,215,0,0.15)' : i === 1 ? 'rgba(255,255,255,0.1)' : 'rgba(205,127,50,0.15)',
-                    border: `1px solid ${i === 0 ? 'var(--accent-gold)' : i === 1 ? '#e2e8f0' : '#b45309'}`,
-                    color: i === 0 ? 'var(--accent-gold)' : i === 1 ? '#e2e8f0' : '#b45309',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.7rem',
-                    fontWeight: '900'
-                  }}>
-                    #{i + 1}
-                  </div>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '700', flex: 1 }}>{w.displayName}</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--success-emerald)' }}>₹{w.totalWinnings.toFixed(2)}</span>
-                </div>
-              ))
-            ) : (
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block' }}>Loading rankings...</span>
-            )}
-          </GlassCard>
-        </div>
 
       </div>
 
