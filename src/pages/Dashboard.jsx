@@ -32,7 +32,7 @@ const Dashboard = () => {
       sublabel: activeRound ? `Round #${activeRound.roundNumber} • ${countdown}s left` : 'Game Active',
       gradient: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
       glow: 'rgba(124, 58, 237, 0.3)',
-      path: '/',
+      path: '/game',
       badge: '🎲 LIVE'
     },
     {
@@ -134,7 +134,7 @@ const Dashboard = () => {
 
         {/* Play CTA Banner */}
         <div
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/game')}
           style={{
             background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #1d4ed8 100%)',
             borderRadius: '18px', padding: '16px 18px', cursor: 'pointer',
