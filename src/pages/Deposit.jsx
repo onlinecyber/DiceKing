@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+// dummy redeploy trigger
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Copy, Check, Zap, Info, CreditCard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
