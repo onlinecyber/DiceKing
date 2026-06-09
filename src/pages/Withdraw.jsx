@@ -33,7 +33,7 @@ const Withdraw = () => {
   const [bankAcc, setBankAcc] = useState('');
   const [bankIfsc, setBankIfsc] = useState('');
   const [bankName, setBankName] = useState('');
-+  const [holderName, setHolderName] = useState('');
+  const [holderName, setHolderName] = useState('');
   const [upiName, setUpiName] = useState('');
   const [existingBanks, setExistingBanks] = useState([]);
   const [loading, setLoading] = useState(false);
