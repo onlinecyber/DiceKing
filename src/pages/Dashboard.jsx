@@ -24,10 +24,6 @@ const Dashboard = () => {
     }
   };
 
-  const totalBets = recentBets.length;
-  const totalWins = recentBets.filter(b => b.status === 'won').length;
-  const winRate = totalBets > 0 ? Math.round((totalWins / totalBets) * 100) : 0;
-
   const quickActions = [
     {
       id: 'play',
@@ -136,19 +132,38 @@ const Dashboard = () => {
           </div>
         </GlassCard>
 
-        {/* Stats Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-          {[
-            { label: 'Total Bets', value: totalBets, icon: '🎲', color: '#7c3aed' },
-            { label: 'Wins', value: totalWins, icon: '🏆', color: '#10b981' },
-            { label: 'Win Rate', value: `${winRate}%`, icon: '📈', color: '#f59e0b' }
-          ].map((stat) => (
-            <GlassCard key={stat.label} style={{ padding: '14px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.3rem', marginBottom: '4px' }}>{stat.icon}</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: '800', color: stat.color }}>{stat.value}</div>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: '600' }}>{stat.label}</div>
-            </GlassCard>
-          ))}
+        {/* Play CTA Banner */}
+        <div
+          onClick={() => navigate('/')}
+          style={{
+            background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #1d4ed8 100%)',
+            borderRadius: '18px', padding: '16px 18px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            boxShadow: '0 8px 32px rgba(124, 58, 237, 0.35)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.01)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <div>
+            <div style={{ fontSize: '0.95rem', fontWeight: '900', color: '#fff', marginBottom: '3px' }}>
+              🎲 Start Playing Now!
+            </div>
+            <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.75)' }}>
+              {activeRound
+                ? `Round #${activeRound.roundNumber} — ${countdown}s remaining`
+                : 'New round starting soon...'}
+            </div>
+          </div>
+          <div style={{
+            background: 'rgba(255,215,0,0.15)', border: '1px solid rgba(255,215,0,0.4)',
+            borderRadius: '12px', padding: '8px 12px',
+            display: 'flex', alignItems: 'center', gap: '5px'
+          }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--accent-gold)' }}>Play</span>
+            <ArrowRight size={14} color="var(--accent-gold)" />
+          </div>
         </div>
 
         {/* Quick Actions Grid */}
@@ -267,40 +282,6 @@ const Dashboard = () => {
             )}
           </GlassCard>
         )}
-
-        {/* Play CTA Banner */}
-        <div
-          onClick={() => navigate('/')}
-          style={{
-            background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #1d4ed8 100%)',
-            borderRadius: '18px', padding: '18px 20px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            boxShadow: '0 8px 32px rgba(124, 58, 237, 0.35)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.01)'}
-          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          <div>
-            <div style={{ fontSize: '1rem', fontWeight: '900', color: '#fff', marginBottom: '4px' }}>
-              🎲 Start Playing Now!
-            </div>
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)' }}>
-              {activeRound
-                ? `Round #${activeRound.roundNumber} — ${countdown}s remaining`
-                : 'New round starting soon...'}
-            </div>
-          </div>
-          <div style={{
-            background: 'rgba(255,215,0,0.15)', border: '1px solid rgba(255,215,0,0.4)',
-            borderRadius: '12px', padding: '10px 14px',
-            display: 'flex', alignItems: 'center', gap: '6px'
-          }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--accent-gold)' }}>Play</span>
-            <ArrowRight size={16} color="var(--accent-gold)" />
-          </div>
-        </div>
 
       </div>
 
