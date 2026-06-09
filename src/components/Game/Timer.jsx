@@ -1,14 +1,41 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useGame } from '../../context/GameContext';
 import GlassCard from '../Common/GlassCard';
 
 const Timer = () => {
   const { countdown, settling, history, activeRound } = useGame();
+  const audioCtxRef = useRef(null);
+  const lastBeepRef = useRef(null);
   
   const secs = countdown < 0 ? 0 : countdown;
   const timeString = `00:${secs.toString().padStart(2, '0')}`;
   
   const recentRounds = (history || []).slice(0, 5);
+
+  // Beep sound using Web Audio API
+  useEffect(() => {
+    if (secs > 0 && secs <= 5 && secs !== lastBeepRef.current) {
+      lastBeepRef.current = secs;
+      try {
+        if (!audioCtxRef.current) {
+          audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const ctx = audioCtxRef.current;
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+        gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.25);
+      } catch (e) {
+        // AudioContext not available, silently ignore
+      }
+    }
+  }, [secs]);
   
   const getRoundBadgeStyles = (total) => {
     if (total > 7) return { bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.4)', text: 'var(--success-emerald)' };
