@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Gamepad2, Wallet, Trophy, History, HeadphonesIcon,
-  Copy, Check, TrendingUp, Users, ArrowRight, Zap,
-  Gift, ChevronRight, Star, Shield
+  Copy, Check, ArrowRight, Gift, Shield
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGame } from '../context/GameContext';
@@ -98,81 +97,14 @@ const Dashboard = () => {
 
       <div className="content-container" style={{ gap: '16px' }}>
 
-        {/* Hero Welcome Section */}
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(79, 70, 229, 0.1) 100%)',
-          border: '1px solid rgba(124, 58, 237, 0.3)',
-          borderRadius: '20px',
-          padding: '20px',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          {/* Background decoration */}
-          <div style={{
-            position: 'absolute', top: '-20px', right: '-20px',
-            width: '120px', height: '120px',
-            background: 'radial-gradient(circle, rgba(255,215,0,0.08) 0%, transparent 70%)',
-            borderRadius: '50%'
-          }} />
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {/* Avatar */}
-            <div style={{
-              width: '56px', height: '56px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.5rem', fontWeight: '800',
-              border: '2px solid rgba(255,215,0,0.4)',
-              boxShadow: '0 0 16px rgba(124, 58, 237, 0.4)',
-              flexShrink: 0
-            }}>
-              {(profile?.displayName || 'P')[0].toUpperCase()}
-            </div>
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '1.15rem', fontWeight: '800', color: '#fff' }}>
-                  {profile?.displayName || 'Player'}
-                </span>
-                {profile?.role === 'admin' && (
-                  <span style={{
-                    fontSize: '0.55rem', background: 'var(--danger-red)', color: '#fff',
-                    padding: '2px 6px', borderRadius: '4px', fontWeight: '800',
-                    textTransform: 'uppercase', letterSpacing: '0.5px'
-                  }}>Admin</span>
-                )}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                Welcome back! Ready to win?
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate('/')}
-              style={{
-                background: 'linear-gradient(135deg, #ffd700, #d4af37)',
-                border: 'none', borderRadius: '12px',
-                padding: '10px 16px', color: '#0b0914',
-                fontWeight: '800', fontSize: '0.75rem',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                boxShadow: '0 4px 12px rgba(255,215,0,0.3)',
-                flexShrink: 0
-              }}
-            >
-              <Zap size={14} fill="currentColor" />
-              PLAY
-            </button>
-          </div>
-        </div>
-
         {/* Wallet Balance Card */}
         <GlassCard style={{ padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px' }}>WALLET BALANCE</span>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
             <Wallet size={16} color="var(--accent-gold)" />
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px' }}>WALLET BALANCE</span>
           </div>
 
-          <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--accent-gold)', marginBottom: '16px', letterSpacing: '-1px' }}>
+          <div style={{ fontSize: '2.6rem', fontWeight: '900', color: 'var(--accent-gold)', marginBottom: '18px', letterSpacing: '-1px', textAlign: 'center' }}>
             ₹{wallet ? wallet.balance.toFixed(2) : '0.00'}
           </div>
 
