@@ -1,27 +1,27 @@
 import React, { useEffect, useRef } from 'react';
 import { useGame } from '../../context/GameContext';
 
-// Play dice rolling rattle using Web Audio API
-const playDiceRattle = (audioCtxRef) => {
+// Play a single click for dice rolling rattle using Web Audio API
+const playSingleRattleClick = (audioCtxRef) => {
   try {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
     const ctx = audioCtxRef.current;
-    // Play 5 rapid clicks to simulate dice rattling
-    for (let i = 0; i < 5; i++) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'square';
-      const freq = 120 + Math.random() * 80;
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
-      gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.08);
-      osc.start(ctx.currentTime + i * 0.12);
-      osc.stop(ctx.currentTime + i * 0.12 + 0.08);
+    if (ctx.state === 'suspended') {
+      ctx.resume();
     }
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'square';
+    const freq = 120 + Math.random() * 80;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.08);
   } catch (e) {}
 };
 
@@ -32,6 +32,9 @@ const playDiceThud = (audioCtxRef) => {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
     const ctx = audioCtxRef.current;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -117,20 +120,30 @@ const DiceCube = ({ value, rolling }) => {
 };
 
 const DiceBoard = () => {
-  const { rolling, rolledDice, settling, activeRound } = useGame();
+  const { rolling, rolledDice } = useGame();
   const audioCtxRef = useRef(null);
   const prevRollingRef = useRef(false);
 
   useEffect(() => {
-    if (rolling && !prevRollingRef.current) {
-      // Dice just started rolling — play rattle
-      playDiceRattle(audioCtxRef);
-    }
-    if (!rolling && prevRollingRef.current) {
+    let intervalId = null;
+    if (rolling) {
+      // Play first click immediately
+      playSingleRattleClick(audioCtxRef);
+      // Play subsequent clicks every 100ms
+      intervalId = setInterval(() => {
+        playSingleRattleClick(audioCtxRef);
+      }, 100);
+    } else if (prevRollingRef.current) {
       // Dice just stopped — play thud
       playDiceThud(audioCtxRef);
     }
     prevRollingRef.current = rolling;
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [rolling]);
 
   return (
@@ -155,46 +168,6 @@ const DiceBoard = () => {
       }}>
         <DiceCube value={rolledDice.dice1} rolling={rolling} />
         <DiceCube value={rolledDice.dice2} rolling={rolling} />
-      </div>
-
-      {/* Outcome/Status Banner */}
-      <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {rolling ? (
-          <span style={{ 
-            color: 'var(--accent-gold)', 
-            fontWeight: '800', 
-            fontSize: '0.95rem',
-            letterSpacing: '3px',
-            textTransform: 'uppercase',
-            animation: 'pulse-gold 1.5s infinite'
-          }}>
-            ROLLING 3D DICE...
-          </span>
-        ) : settling ? (
-          <span style={{ 
-            color: 'var(--text-secondary)', 
-            fontWeight: '600', 
-            fontSize: '0.95rem'
-          }}>
-            Settling Bets...
-          </span>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ 
-              color: 'var(--text-primary)', 
-              fontWeight: '800', 
-              fontSize: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              Round Result: <span style={{ color: 'var(--accent-gold)' }}>{rolledDice.total}</span>
-            </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Round #{activeRound ? activeRound.roundNumber - 1 : '--'}
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );
