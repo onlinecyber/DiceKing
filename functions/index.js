@@ -204,8 +204,9 @@ exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) =>
       .where('status', '==', 'pending');
     const betsSnap = await transaction.get(betsQuery);
 
-    // 2. Generate outcome that minimizes house payout (excluding 2 & 12 sums)
+    // 2. Generate outcome that minimizes house payout
     const DICE_PAIRS_BY_SUM = {
+      2: [[1, 1]],
       3: [[1, 2], [2, 1]],
       4: [[1, 3], [2, 2], [3, 1]],
       5: [[1, 4], [2, 3], [3, 2], [4, 1]],
@@ -214,11 +215,13 @@ exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) =>
       8: [[2, 6], [3, 5], [4, 4], [5, 3], [6, 2]],
       9: [[3, 6], [4, 5], [5, 4], [6, 3]],
       10: [[4, 6], [5, 5], [6, 4]],
-      11: [[5, 6], [6, 5]]
+      11: [[5, 6], [6, 5]],
+      12: [[6, 6]]
     };
 
     const getExactMultiplier = (num) => {
       switch (num) {
+        case 2: case 12: return 30.0;
         case 3: case 11: return 15.0;
         case 4: case 10: return 10.0;
         case 5: case 9: return 8.0;
@@ -228,7 +231,7 @@ exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) =>
       }
     };
 
-    const candidateSums = [3, 4, 5, 6, 7, 8, 9, 10, 11];
+    const candidateSums = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     const payoutsBySum = {};
 
     candidateSums.forEach(S => {

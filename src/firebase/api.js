@@ -1,6 +1,14 @@
 import { auth } from './config';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const getBackendUrl = () => {
+  if (import.meta.env.VITE_BACKEND_URL) return import.meta.env.VITE_BACKEND_URL;
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return window.location.origin;
+  }
+  return 'http://localhost:5000';
+};
+
+const BACKEND_URL = getBackendUrl();
 
 export const callApi = async (name, data = {}) => {
   const user = auth.currentUser;

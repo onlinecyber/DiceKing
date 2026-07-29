@@ -36,8 +36,8 @@ if (process.env.FIRESTORE_EMULATOR_HOST || process.env.VITE_USE_FIREBASE_EMULATO
   console.log("Connected to local Firebase Emulators!");
 } else {
   // Production Mode
-  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  if (privateKey) {
+  if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
     privateKey = privateKey.trim();
     if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
       privateKey = privateKey.slice(1, -1);
@@ -45,15 +45,19 @@ if (process.env.FIRESTORE_EMULATOR_HOST || process.env.VITE_USE_FIREBASE_EMULATO
       privateKey = privateKey.slice(1, -1);
     }
     privateKey = privateKey.replace(/\\n/g, '\n');
+
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'diceking-eeea2',
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: privateKey
+      })
+    });
+  } else {
+    admin.initializeApp({
+      projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'diceking-eeea2'
+    });
   }
-    
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: privateKey
-    })
-  });
   console.log("Connected to live Firebase Production!");
 }
 
@@ -317,6 +321,7 @@ const settleRoundAndStartNew = async (data, context) => {
       const betsSnap = await transaction.get(betsQuery);
 
       const DICE_PAIRS_BY_SUM = {
+        2: [[1, 1]],
         3: [[1, 2], [2, 1]],
         4: [[1, 3], [2, 2], [3, 1]],
         5: [[1, 4], [2, 3], [3, 2], [4, 1]],
@@ -325,11 +330,13 @@ const settleRoundAndStartNew = async (data, context) => {
         8: [[2, 6], [3, 5], [4, 4], [5, 3], [6, 2]],
         9: [[3, 6], [4, 5], [5, 4], [6, 3]],
         10: [[4, 6], [5, 5], [6, 4]],
-        11: [[5, 6], [6, 5]]
+        11: [[5, 6], [6, 5]],
+        12: [[6, 6]]
       };
 
       const getExactMultiplier = (num) => {
         switch (num) {
+          case 2: case 12: return 30.0;
           case 3: case 11: return 15.0;
           case 4: case 10: return 10.0;
           case 5: case 9: return 8.0;
@@ -339,7 +346,7 @@ const settleRoundAndStartNew = async (data, context) => {
         }
       };
 
-      const candidateSums = [3, 4, 5, 6, 7, 8, 9, 10, 11];
+      const candidateSums = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
       const payoutsBySum = {};
 
       candidateSums.forEach(S => {

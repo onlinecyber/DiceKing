@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Wallet, User, ShieldAlert, History, LayoutDashboard } from 'lucide-react';
+import { Wallet, User, ShieldAlert, History, LayoutDashboard, Dices } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import GlassCard from './GlassCard';
 
@@ -52,6 +52,12 @@ const BottomNav = () => {
       <NavLink to="/dashboard" style={navItemStyle}>
         <LayoutDashboard size={20} />
         <span>Home</span>
+      </NavLink>
+
+      {/* Game Tab */}
+      <NavLink to="/game" style={navItemStyle}>
+        <Dices size={20} />
+        <span>Game</span>
       </NavLink>
 
       {/* Wallet Tab */}

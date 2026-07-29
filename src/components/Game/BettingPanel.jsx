@@ -234,9 +234,62 @@ const BettingPanel = () => {
           </button>
         </div>
 
+        {/* Row 3: Exact Sum Multiplier Grid (2 to 12) */}
+        <div style={{ marginTop: '6px' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>EXACT SUM MULTIPLIERS</span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--accent-gold)' }}>Up to 30x Payout</span>
+          </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+            {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
+              <button
+                key={num}
+                disabled={isLocked || loading}
+                onClick={() => handleBetClick('exact', num)}
+                style={{
+                  background: 'rgba(31, 27, 53, 0.6)',
+                  border: num === 2 || num === 12 ? '1px solid var(--accent-gold)' : '1px solid var(--card-border)',
+                  borderRadius: '12px',
+                  padding: '10px 4px',
+                  cursor: isLocked ? 'not-allowed' : 'pointer',
+                  color: 'var(--text-primary)',
+                  transition: 'all 0.2s',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px'
+                }}
+              >
+                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: num === 2 || num === 12 ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
+                  {num}
+                </div>
+                <div style={{ fontSize: '0.65rem', fontWeight: '700', color: num === 2 || num === 12 ? 'var(--accent-gold)' : 'var(--text-muted)' }}>
+                  {exactMultipliers[num]}x
+                </div>
 
-
+                {/* Active Bet Badge */}
+                {getBetAmountOnType('exact', num) > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-4px',
+                    background: 'var(--accent-gold)',
+                    color: '#000',
+                    fontSize: '0.6rem',
+                    fontWeight: '800',
+                    padding: '1px 5px',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.4)'
+                  }}>
+                    ₹{getBetAmountOnType('exact', num)}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Bet Modal */}
@@ -263,7 +316,7 @@ const BettingPanel = () => {
               color: '#fff', fontWeight: '800', fontSize: '1.2rem', textTransform: 'capitalize',
               boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
             }}>
-              Select {modalState.type}
+              Select {modalState.type === 'exact' ? `Exact ${modalState.exactValue} (${exactMultipliers[modalState.exactValue]}x Payout)` : modalState.type}
             </div>
 
             {/* Base Amount Selector */}

@@ -27,8 +27,39 @@ const HistoryList = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      
-
+      {/* Horizontal Recent Outcome Pills (Daman/Wingo style) */}
+      <GlassCard style={{ padding: '12px 14px' }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+          LAST OUTCOMES
+        </div>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+          {history.slice(0, 10).map((r) => {
+            const styles = getRoundBadgeStyles(r.total);
+            return (
+              <div
+                key={r.id}
+                style={{
+                  minWidth: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: styles.bg,
+                  border: styles.border,
+                  color: styles.text,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: '800',
+                  fontSize: '0.85rem',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                }}
+                title={`Round #${r.roundNumber}: Rolled ${r.total} (${r.dice1}+${r.dice2})`}
+              >
+                {r.total}
+              </div>
+            );
+          })}
+        </div>
+      </GlassCard>
 
       {/* Summary table for detailed analytics */}
       <GlassCard style={{ padding: '16px', maxHeight: '400px', overflowY: 'auto' }}>

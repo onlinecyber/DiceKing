@@ -13,6 +13,7 @@ import {
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
 import { callApi } from '../firebase/api';
+import { soundManager } from '../utils/soundManager';
 
 const GameContext = createContext();
 
@@ -176,8 +177,9 @@ export const GameProvider = ({ children }) => {
       if (rounds.length > 0) {
         const latestCompleted = rounds[0];
         if (prevCompletedRoundIdRef.current && prevCompletedRoundIdRef.current !== latestCompleted.id) {
-          // Play roll animation
+          // Play roll animation and audio sound
           setRolling(true);
+          soundManager.playDiceRoll();
           setRolledDice({
             dice1: latestCompleted.dice1,
             dice2: latestCompleted.dice2,
@@ -203,6 +205,7 @@ export const GameProvider = ({ children }) => {
                   if (b.status === 'won') wonAmount += b.payout;
                 });
                 if (wonAmount > 0) {
+                  soundManager.playWin();
                   showToast(`🎉 You Won ₹${wonAmount.toFixed(2)} in Round #${latestCompleted.roundNumber}!`, 'success');
                 } else if (!betSnap.empty) {
                   showToast(`Round #${latestCompleted.roundNumber} completed: Rolled ${latestCompleted.total}`, 'info');
@@ -279,6 +282,10 @@ export const GameProvider = ({ children }) => {
       const deltaSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
       
       setCountdown(deltaSeconds);
+
+      if (deltaSeconds > 0 && deltaSeconds <= 5) {
+        soundManager.playTick();
+      }
 
       // If timer hit 0, settle the round
       if (deltaSeconds <= 0 && activeRound.status === 'active' && !settling) {
