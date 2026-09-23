@@ -197,56 +197,19 @@ const BettingPanel = () => {
 
         {/* UP and DOWN Large Side-by-Side Pill Buttons (Matching Big/Small in Tiranga) */}
         <div style={{ display: 'flex', gap: '12px' }}>
-          {/* UP BUTTON (Gold/Orange Pill) */}
-          <button
-            disabled={isLocked || loading}
-            onClick={() => handleBetClick('up')}
-            style={{
-              flex: 1,
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-              border: 'none',
-              borderRadius: '24px',
-              padding: '14px 10px',
-              cursor: isLocked ? 'not-allowed' : 'pointer',
-              color: '#fff',
-              boxShadow: '0 6px 20px rgba(245, 158, 11, 0.4)',
-              transition: 'all 0.2s ease',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <div style={{ fontSize: '1.3rem', fontWeight: '900', letterSpacing: '1px' }}>UP</div>
-            <div style={{ fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>SUM 8-12 (2x Payout)</div>
-
-            {getBetAmountOnType('up') > 0 && (
-              <div style={{
-                position: 'absolute', top: '6px', right: '10px',
-                background: '#000', color: '#ffd700',
-                fontSize: '0.6rem', fontWeight: '900',
-                padding: '2px 6px', borderRadius: '10px',
-                display: 'flex', alignItems: 'center', gap: '2px'
-              }}>
-                <Coins size={10} /> ₹{getBetAmountOnType('up')}
-              </div>
-            )}
-          </button>
-
-          {/* DOWN BUTTON (Blue Pill) */}
+          {/* DOWN BUTTON (Red Pill - 1st) */}
           <button
             disabled={isLocked || loading}
             onClick={() => handleBetClick('down')}
             style={{
               flex: 1,
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
               border: 'none',
               borderRadius: '24px',
               padding: '14px 10px',
               cursor: isLocked ? 'not-allowed' : 'pointer',
               color: '#fff',
-              boxShadow: '0 6px 20px rgba(59, 130, 246, 0.4)',
+              boxShadow: '0 6px 20px rgba(239, 68, 68, 0.4)',
               transition: 'all 0.2s ease',
               position: 'relative',
               display: 'flex',
@@ -267,6 +230,43 @@ const BettingPanel = () => {
                 display: 'flex', alignItems: 'center', gap: '2px'
               }}>
                 <Coins size={10} /> ₹{getBetAmountOnType('down')}
+              </div>
+            )}
+          </button>
+
+          {/* UP BUTTON (Green Pill - 2nd) */}
+          <button
+            disabled={isLocked || loading}
+            onClick={() => handleBetClick('up')}
+            style={{
+              flex: 1,
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              border: 'none',
+              borderRadius: '24px',
+              padding: '14px 10px',
+              cursor: isLocked ? 'not-allowed' : 'pointer',
+              color: '#fff',
+              boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <div style={{ fontSize: '1.3rem', fontWeight: '900', letterSpacing: '1px' }}>UP</div>
+            <div style={{ fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>SUM 8-12 (2x Payout)</div>
+
+            {getBetAmountOnType('up') > 0 && (
+              <div style={{
+                position: 'absolute', top: '6px', right: '10px',
+                background: '#000', color: '#ffd700',
+                fontSize: '0.6rem', fontWeight: '900',
+                padding: '2px 6px', borderRadius: '10px',
+                display: 'flex', alignItems: 'center', gap: '2px'
+              }}>
+                <Coins size={10} /> ₹{getBetAmountOnType('up')}
               </div>
             )}
           </button>
