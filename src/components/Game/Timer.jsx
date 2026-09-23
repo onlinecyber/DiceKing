@@ -3,7 +3,7 @@ import { useGame } from '../../context/GameContext';
 import GlassCard from '../Common/GlassCard';
 
 const Timer = () => {
-  const { countdown, settling, history, activeRound } = useGame();
+  const { countdown, settling, rolling, history, activeRound } = useGame();
   const audioCtxRef = useRef(null);
   const lastBeepRef = useRef(null);
   
@@ -75,14 +75,31 @@ const Timer = () => {
           Time remaining
         </div>
         
-        {/* Timer Blocks */}
-        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', fontSize: '1.2rem', fontWeight: '800', color: countdown <= 5 ? 'var(--danger-red)' : '#fff' }}>
-          <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>0</div>
-          <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>0</div>
-          <span style={{ margin: '0 2px' }}>:</span>
-          <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>{timeString[3]}</div>
-          <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>{timeString[4]}</div>
-        </div>
+        {/* Timer Blocks or ROLLING Indicator */}
+        {rolling || settling ? (
+          <div style={{ 
+            color: 'var(--accent-gold)', 
+            fontWeight: '800', 
+            fontSize: '1rem', 
+            background: 'rgba(255, 215, 0, 0.12)', 
+            padding: '4px 10px', 
+            borderRadius: '8px', 
+            border: '1px solid rgba(255, 215, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            🎲 ROLLING...
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '4px', alignItems: 'center', fontSize: '1.2rem', fontWeight: '800', color: countdown <= 5 ? 'var(--danger-red)' : '#fff' }}>
+            <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>0</div>
+            <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>0</div>
+            <span style={{ margin: '0 2px' }}>:</span>
+            <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>{timeString[3]}</div>
+            <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>{timeString[4]}</div>
+          </div>
+        )}
         
         <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '8px', letterSpacing: '0.5px' }}>
           {activeRound ? (() => {

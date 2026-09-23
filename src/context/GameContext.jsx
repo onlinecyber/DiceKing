@@ -281,6 +281,12 @@ export const GameProvider = ({ children }) => {
       const endTime = activeRound.endTime.toMillis();
       const deltaSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
       
+      // If rolling or settling is in progress, hold countdown at 0 to prevent timer jumping ahead
+      if (rolling || settling) {
+        setCountdown(0);
+        return;
+      }
+
       setCountdown(deltaSeconds);
 
       if (deltaSeconds > 0 && deltaSeconds <= 5) {
@@ -297,7 +303,7 @@ export const GameProvider = ({ children }) => {
     const intervalId = setInterval(tick, 1000);
 
     return () => clearInterval(intervalId);
-  }, [activeRound, settling]);
+  }, [activeRound, settling, rolling]);
 
   // Admin Settings update helper
   const saveAppSettings = async (newSettings) => {
