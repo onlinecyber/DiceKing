@@ -15,6 +15,8 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { wallet, activeRound, countdown, appSettings } = useGame();
+  const [copied, setCopied] = useState(false);
+  const [showBonusModal, setShowBonusModal] = useState(false);
   const hasDeposited = (wallet?.totalDeposits && wallet.totalDeposits > 0) || profile?.firstDepositClaimed === true;
 
   useEffect(() => {
