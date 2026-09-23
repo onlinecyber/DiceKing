@@ -64,232 +64,214 @@ const BettingPanel = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
       {/* 2. Main Betting Options Grid */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         
-        {/* Row 1: Up and Down */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {/* DOWN CARD */}
-          <button
-            disabled={isLocked || loading}
-            onClick={() => handleBetClick('down')}
-            style={{
-              flex: 1,
-              background: 'rgba(239, 68, 68, 0.08)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              borderRadius: '16px',
-              padding: '20px 12px',
-              cursor: isLocked ? 'not-allowed' : 'pointer',
-              color: 'var(--text-primary)',
-              transition: 'all 0.2s',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--danger-red)' }}>DOWN</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SUM 2 - 6 (2x Payout)</div>
-            
-            {/* Active Bet Badge */}
-            {getBetAmountOnType('down') > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '6px',
-                right: '6px',
-                background: 'var(--accent-gold)',
-                color: '#000',
-                fontSize: '0.65rem',
-                fontWeight: '800',
-                padding: '2px 6px',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
-              }}>
-                <Coins size={10} /> ₹{getBetAmountOnType('down')}
-              </div>
-            )}
-          </button>
+        {/* Exact Sum Multipliers (Organized into 2 clean rows of Tiranga-style 3D Number Balls) */}
+        <div style={{ background: 'rgba(23, 27, 54, 0.7)', borderRadius: '20px', padding: '16px 12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-secondary)', marginBottom: '12px', textAlign: 'center', letterSpacing: '1px' }}>
+            SELECT EXACT SUM (NUMBER BALLS)
+          </div>
 
-          {/* UP CARD */}
+          {/* Row 1: Numbers 2 to 7 (6 Balls) */}
+          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginBottom: '12px' }}>
+            {[2, 3, 4, 5, 6, 7].map(num => {
+              const bgGradient = num <= 6
+                ? 'radial-gradient(circle at 35% 35%, #ff7b7b, #ef4444 60%, #991b1b)'
+                : 'radial-gradient(circle at 35% 35%, #ffe875, #eab308 60%, #854d0e)';
+              const shadowColor = num <= 6 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(234, 179, 8, 0.4)';
+
+              return (
+                <button
+                  key={num}
+                  disabled={isLocked || loading}
+                  onClick={() => handleBetClick('exact', num)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: isLocked ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    background: bgGradient,
+                    boxShadow: `0 4px 12px ${shadowColor}, inset -2px -2px 4px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontWeight: '900',
+                    fontSize: '1.2rem',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.6)'
+                  }}>
+                    {num}
+                  </div>
+                  <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#ffd700' }}>
+                    {exactMultipliers[num]}x
+                  </span>
+
+                  {/* Active Bet Badge */}
+                  {getBetAmountOnType('exact', num) > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-4px', right: '-4px',
+                      background: 'var(--accent-gold)', color: '#000',
+                      fontSize: '0.55rem', fontWeight: '900',
+                      padding: '1px 5px', borderRadius: '8px',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
+                    }}>
+                      ₹{getBetAmountOnType('exact', num)}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Row 2: Numbers 8 to 12 (5 Balls) */}
+          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+            {[8, 9, 10, 11, 12].map(num => {
+              const bgGradient = 'radial-gradient(circle at 35% 35%, #6ee7b7, #10b981 60%, #065f46)';
+              const shadowColor = 'rgba(16, 185, 129, 0.4)';
+
+              return (
+                <button
+                  key={num}
+                  disabled={isLocked || loading}
+                  onClick={() => handleBetClick('exact', num)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: isLocked ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    background: bgGradient,
+                    boxShadow: `0 4px 12px ${shadowColor}, inset -2px -2px 4px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontWeight: '900',
+                    fontSize: '1.2rem',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.6)'
+                  }}>
+                    {num}
+                  </div>
+                  <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#ffd700' }}>
+                    {exactMultipliers[num]}x
+                  </span>
+
+                  {/* Active Bet Badge */}
+                  {getBetAmountOnType('exact', num) > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-4px', right: '-4px',
+                      background: 'var(--accent-gold)', color: '#000',
+                      fontSize: '0.55rem', fontWeight: '900',
+                      padding: '1px 5px', borderRadius: '8px',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
+                    }}>
+                      ₹{getBetAmountOnType('exact', num)}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* UP and DOWN Large Side-by-Side Pill Buttons (Matching Big/Small in Tiranga) */}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {/* UP BUTTON (Gold/Orange Pill) */}
           <button
             disabled={isLocked || loading}
             onClick={() => handleBetClick('up')}
             style={{
               flex: 1,
-              background: 'rgba(16, 185, 129, 0.08)',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
-              borderRadius: '16px',
-              padding: '20px 12px',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              border: 'none',
+              borderRadius: '24px',
+              padding: '14px 10px',
               cursor: isLocked ? 'not-allowed' : 'pointer',
-              color: 'var(--text-primary)',
-              transition: 'all 0.2s',
+              color: '#fff',
+              boxShadow: '0 6px 20px rgba(245, 158, 11, 0.4)',
+              transition: 'all 0.2s ease',
               position: 'relative',
-              overflow: 'hidden'
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--success-emerald)' }}>UP</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SUM 8 - 12 (2x Payout)</div>
-            
-            {/* Active Bet Badge */}
+            <div style={{ fontSize: '1.3rem', fontWeight: '900', letterSpacing: '1px' }}>UP</div>
+            <div style={{ fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>SUM 8-12 (2x Payout)</div>
+
             {getBetAmountOnType('up') > 0 && (
               <div style={{
-                position: 'absolute',
-                top: '6px',
-                right: '6px',
-                background: 'var(--accent-gold)',
-                color: '#000',
-                fontSize: '0.65rem',
-                fontWeight: '800',
-                padding: '2px 6px',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
+                position: 'absolute', top: '6px', right: '10px',
+                background: '#000', color: '#ffd700',
+                fontSize: '0.6rem', fontWeight: '900',
+                padding: '2px 6px', borderRadius: '10px',
+                display: 'flex', alignItems: 'center', gap: '2px'
               }}>
                 <Coins size={10} /> ₹{getBetAmountOnType('up')}
               </div>
             )}
           </button>
-        </div>
 
-        {/* Row 2: Odd and Even */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {/* ODD CARD */}
+          {/* DOWN BUTTON (Blue Pill) */}
           <button
             disabled={isLocked || loading}
-            onClick={() => handleBetClick('odd')}
+            onClick={() => handleBetClick('down')}
             style={{
               flex: 1,
-              background: 'rgba(31, 27, 53, 0.45)',
-              border: '1px solid var(--card-border)',
-              borderRadius: '16px',
-              padding: '16px 12px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              border: 'none',
+              borderRadius: '24px',
+              padding: '14px 10px',
               cursor: isLocked ? 'not-allowed' : 'pointer',
-              color: 'var(--text-primary)',
-              transition: 'all 0.2s',
-              position: 'relative'
+              color: '#fff',
+              boxShadow: '0 6px 20px rgba(59, 130, 246, 0.4)',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <div style={{ fontSize: '1rem', fontWeight: '700' }}>ODD</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>1.9x Payout</div>
-            
-            {/* Active Bet Badge */}
-            {getBetAmountOnType('odd') > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '6px',
-                right: '6px',
-                background: 'var(--accent-gold)',
-                color: '#000',
-                fontSize: '0.65rem',
-                fontWeight: '800',
-                padding: '2px 6px',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
-              }}>
-                <Coins size={10} /> ₹{getBetAmountOnType('odd')}
-              </div>
-            )}
-          </button>
+            <div style={{ fontSize: '1.3rem', fontWeight: '900', letterSpacing: '1px' }}>DOWN</div>
+            <div style={{ fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>SUM 2-6 (2x Payout)</div>
 
-          {/* EVEN CARD */}
-          <button
-            disabled={isLocked || loading}
-            onClick={() => handleBetClick('even')}
-            style={{
-              flex: 1,
-              background: 'rgba(31, 27, 53, 0.45)',
-              border: '1px solid var(--card-border)',
-              borderRadius: '16px',
-              padding: '16px 12px',
-              cursor: isLocked ? 'not-allowed' : 'pointer',
-              color: 'var(--text-primary)',
-              transition: 'all 0.2s',
-              position: 'relative'
-            }}
-          >
-            <div style={{ fontSize: '1rem', fontWeight: '700' }}>EVEN</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>1.9x Payout</div>
-            
-            {/* Active Bet Badge */}
-            {getBetAmountOnType('even') > 0 && (
+            {getBetAmountOnType('down') > 0 && (
               <div style={{
-                position: 'absolute',
-                top: '6px',
-                right: '6px',
-                background: 'var(--accent-gold)',
-                color: '#000',
-                fontSize: '0.65rem',
-                fontWeight: '800',
-                padding: '2px 6px',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
+                position: 'absolute', top: '6px', right: '10px',
+                background: '#000', color: '#ffd700',
+                fontSize: '0.6rem', fontWeight: '900',
+                padding: '2px 6px', borderRadius: '10px',
+                display: 'flex', alignItems: 'center', gap: '2px'
               }}>
-                <Coins size={10} /> ₹{getBetAmountOnType('even')}
+                <Coins size={10} /> ₹{getBetAmountOnType('down')}
               </div>
             )}
           </button>
         </div>
 
-        {/* Row 3: Exact Sum Multiplier Grid (2 to 12) */}
-        <div style={{ marginTop: '6px' }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>EXACT SUM MULTIPLIERS</span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--accent-gold)' }}>Up to 30x Payout</span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-            {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
-              <button
-                key={num}
-                disabled={isLocked || loading}
-                onClick={() => handleBetClick('exact', num)}
-                style={{
-                  background: 'rgba(31, 27, 53, 0.6)',
-                  border: num === 2 || num === 12 ? '1px solid var(--accent-gold)' : '1px solid var(--card-border)',
-                  borderRadius: '12px',
-                  padding: '10px 4px',
-                  cursor: isLocked ? 'not-allowed' : 'pointer',
-                  color: 'var(--text-primary)',
-                  transition: 'all 0.2s',
-                  position: 'relative',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '2px'
-                }}
-              >
-                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: num === 2 || num === 12 ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
-                  {num}
-                </div>
-                <div style={{ fontSize: '0.65rem', fontWeight: '700', color: num === 2 || num === 12 ? 'var(--accent-gold)' : 'var(--text-muted)' }}>
-                  {exactMultipliers[num]}x
-                </div>
-
-                {/* Active Bet Badge */}
-                {getBetAmountOnType('exact', num) > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '-6px',
-                    right: '-4px',
-                    background: 'var(--accent-gold)',
-                    color: '#000',
-                    fontSize: '0.6rem',
-                    fontWeight: '800',
-                    padding: '1px 5px',
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.4)'
-                  }}>
-                    ₹{getBetAmountOnType('exact', num)}
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Bet Modal */}
