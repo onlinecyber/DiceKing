@@ -714,6 +714,25 @@ const adminApproveDeposit = async (data, context) => {
       }
     }
 
+    // ALL READS BEFORE ANY WRITES
+    let referrerDoc = null;
+    let referrerWalletRef = null;
+    let referrerWalletSnap = null;
+    let referrerData = null;
+
+    if (user && user.referralStatus === 'pending' && user.referredBy) {
+      const referrersQuery = db.collection('users').where('referralCode', '==', user.referredBy).limit(1);
+      const referrersSnap = await transaction.get(referrersQuery);
+      
+      if (!referrersSnap.empty) {
+        referrerDoc = referrersSnap.docs[0];
+        referrerData = referrerDoc.data();
+        referrerWalletRef = db.collection('wallets').doc(referrerDoc.id);
+        referrerWalletSnap = await transaction.get(referrerWalletRef);
+      }
+    }
+
+    // PERFORM ALL WRITES
     const newBalance = wallet.balance + deposit.amount + extraBonus;
     const newWageringRequired = (wallet.wageringRequired || 0) + deposit.amount;
     const newTotalDeposits = (wallet.totalDeposits || 0) + deposit.amount;
@@ -743,42 +762,30 @@ const adminApproveDeposit = async (data, context) => {
       });
     }
 
+    if (referrerWalletSnap && referrerWalletSnap.exists && referrerDoc) {
+      transaction.update(referrerWalletRef, {
+        balance: referrerWalletSnap.data().balance + 50.0,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      transaction.update(referrerDoc.ref, {
+        referralEarnings: (referrerData.referralEarnings || 0) + 50.0
+      });
+
+      const refTxRef = db.collection('transactions').doc();
+      transaction.set(refTxRef, {
+        id: refTxRef.id,
+        uid: referrerDoc.id,
+        amount: 50.0,
+        type: 'referral_bonus',
+        status: 'success',
+        description: `Referral bonus from first deposit of player ${user.displayName || 'Player'}`,
+        referenceId: deposit.uid,
+        createdAt: FieldValue.serverTimestamp()
+      });
+    }
+
     if (user && user.referralStatus === 'pending' && user.referredBy) {
-      const referrersQuery = db.collection('users').where('referralCode', '==', user.referredBy).limit(1);
-      const referrersSnap = await transaction.get(referrersQuery);
-      
-      if (!referrersSnap.empty) {
-        const referrerDoc = referrersSnap.docs[0];
-        const referrerUid = referrerDoc.id;
-        const referrerData = referrerDoc.data();
-
-        const referrerWalletRef = db.collection('wallets').doc(referrerUid);
-        const referrerWalletSnap = await transaction.get(referrerWalletRef);
-
-        if (referrerWalletSnap.exists) {
-          transaction.update(referrerWalletRef, {
-            balance: referrerWalletSnap.data().balance + 50.0,
-            updatedAt: FieldValue.serverTimestamp()
-          });
-
-          transaction.update(referrerDoc.ref, {
-            referralEarnings: (referrerData.referralEarnings || 0) + 50.0
-          });
-
-          const refTxRef = db.collection('transactions').doc();
-          transaction.set(refTxRef, {
-            id: refTxRef.id,
-            uid: referrerUid,
-            amount: 50.0,
-            type: 'referral_bonus',
-            status: 'success',
-            description: `Referral bonus from first deposit of player ${user.displayName || 'Player'}`,
-            referenceId: deposit.uid,
-            createdAt: FieldValue.serverTimestamp()
-          });
-        }
-      }
-      
       transaction.update(userRef, {
         referralStatus: 'claimed'
       });
@@ -912,11 +919,6 @@ const adminRejectWithdrawal = async (data, context) => {
       processedAt: FieldValue.serverTimestamp()
     });
 
-    const txsQuery = db.collection('transactions')
-      .where('referenceId', '==', withdrawalId)
-      .where('type', '==', 'withdrawal')
-      .limit(1);
-    const txsSnap = await transaction.get(txsQuery);
     if (!txsSnap.empty) {
       transaction.update(txsSnap.docs[0].ref, {
         status: 'failed',
