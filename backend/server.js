@@ -12,7 +12,13 @@ console.log = (...args) => {
 };
 
 console.error = (...args) => {
-  const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+  const msg = args.map(arg => {
+    if (arg instanceof Error) return `${arg.name}: ${arg.message} | Stack: ${arg.stack}`;
+    if (typeof arg === 'object') {
+      try { return JSON.stringify(arg); } catch (e) { return String(arg); }
+    }
+    return arg;
+  }).join(' ');
   apiLogs.push(`[ERR] [${new Date().toISOString()}] ${msg}`);
   if (apiLogs.length > 150) apiLogs.shift();
   originalError.apply(console, args);
@@ -121,6 +127,7 @@ const handleRequest = (fn) => async (req, res) => {
       error: {
         status,
         message: error.message || 'Internal Server Error',
+        stack: error.stack,
         code: error.code || 'internal'
       }
     });
@@ -1051,6 +1058,24 @@ app.get('/api/testDb', async (req, res) => {
       return data;
     });
     res.json({ success: true, rounds });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/version', (req, res) => {
+  res.json({
+    version: '1.1.0',
+    buildTimestamp: '2026-09-23T11:06:00Z',
+    status: 'online'
+  });
+});
+
+app.get('/api/testBets', async (req, res) => {
+  try {
+    const betsSnap = await db.collection('bets').orderBy('createdAt', 'desc').limit(10).get();
+    const bets = betsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ success: true, bets });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
