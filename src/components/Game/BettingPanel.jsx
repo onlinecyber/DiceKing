@@ -302,18 +302,35 @@ const BettingPanel = () => {
             </div>
 
             {/* Base Amount Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.95rem', color: '#fff', fontWeight: '600' }}>Balance</span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {[10, 100, 500, 1000].map(amt => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.95rem', color: '#fff', fontWeight: '600' }}>Bet Amount (₹)</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: '#a7a3b9', fontSize: '0.85rem' }}>₹</span>
+                  <input 
+                    type="number" 
+                    value={baseAmount} 
+                    onChange={e => setBaseAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                    style={{ 
+                      background: '#2b2640', border: '1px solid rgba(255,255,255,0.15)', 
+                      color: '#fff', width: '100px', height: '32px', textAlign: 'center', 
+                      borderRadius: '6px', fontWeight: '800', fontSize: '0.95rem' 
+                    }} 
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {[10, 100, 500, 1000, 5000, 10000].map(amt => (
                   <button key={amt} onClick={() => setBaseAmount(amt)}
                     style={{
+                      flex: '1 0 28%',
                       background: baseAmount === amt ? '#4f46e5' : '#2b2640',
                       color: baseAmount === amt ? '#fff' : '#a7a3b9',
-                      border: 'none', padding: '8px 14px', borderRadius: '6px',
-                      fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer'
+                      border: 'none', padding: '8px 4px', borderRadius: '6px',
+                      fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                      textAlign: 'center'
                     }}>
-                    {amt}
+                    ₹{amt >= 1000 ? `${amt / 1000}k` : amt}
                   </button>
                 ))}
               </div>

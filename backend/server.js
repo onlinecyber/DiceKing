@@ -192,10 +192,6 @@ const placeBet = async (data, context) => {
     throw new HttpsError('invalid-argument', 'Invalid bet parameters.');
   }
 
-  if (amount > 2000) {
-    throw new HttpsError('failed-precondition', 'Maximum bet limit per round is ₹2,000.');
-  }
-
   const validTypes = ['up', 'down', 'odd', 'even', 'exact'];
   if (!validTypes.includes(type)) {
     throw new HttpsError('invalid-argument', 'Invalid bet type.');
