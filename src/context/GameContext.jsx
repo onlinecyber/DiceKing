@@ -36,6 +36,14 @@ export const GameProvider = ({ children }) => {
   const [toast, setToast] = useState(null);
   const [settling, setSettling] = useState(false);
 
+  // Safety watchdog: ensure rolling state never freezes
+  useEffect(() => {
+    if (rolling) {
+      const timer = setTimeout(() => setRolling(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [rolling]);
+
   // App Settings state with default Indian settings values
   const [appSettings, setAppSettings] = useState({
     upiId: '8406884196@ptaxis',

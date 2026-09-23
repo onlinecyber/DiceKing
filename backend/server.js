@@ -25,40 +25,42 @@ const cors = require('cors');
 const admin = require('firebase-admin');
 
 // 1. Initialize Firebase Admin SDK
-if (process.env.FIRESTORE_EMULATOR_HOST || process.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
-  // Emulator Mode
-  process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
-  process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
-  
-  admin.initializeApp({
-    projectId: process.env.FIREBASE_PROJECT_ID || 'diceking-eeea2'
-  });
-  console.log("Connected to local Firebase Emulators!");
-} else {
-  // Production Mode
-  if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
-    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-    privateKey = privateKey.trim();
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-      privateKey = privateKey.slice(1, -1);
-    } else if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
-      privateKey = privateKey.slice(1, -1);
-    }
-    privateKey = privateKey.replace(/\\n/g, '\n');
-
+if (!admin.apps.length) {
+  if (process.env.FIRESTORE_EMULATOR_HOST || process.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
+    // Emulator Mode
+    process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
+    
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'diceking-eeea2',
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: privateKey
-      })
+      projectId: process.env.FIREBASE_PROJECT_ID || 'diceking-eeea2'
     });
+    console.log("Connected to local Firebase Emulators!");
   } else {
-    admin.initializeApp({
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'diceking-eeea2'
-    });
+    // Production Mode
+    if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+      let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+      privateKey = privateKey.trim();
+      if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+        privateKey = privateKey.slice(1, -1);
+      } else if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
+        privateKey = privateKey.slice(1, -1);
+      }
+      privateKey = privateKey.replace(/\\n/g, '\n');
+
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'diceking-eeea2',
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: privateKey
+        })
+      });
+    } else {
+      admin.initializeApp({
+        projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'diceking-eeea2'
+      });
+    }
+    console.log("Connected to live Firebase Production!");
   }
-  console.log("Connected to live Firebase Production!");
 }
 
 const db = admin.firestore();
@@ -1061,8 +1063,12 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-// Start Server
-const PORT = process.env.PORT || 5002;
-app.listen(PORT, () => {
-  console.log(`DiceKing Express Backend running on port ${PORT}`);
-});
+module.exports = app;
+
+// Start Server (if not running in Vercel Serverless environment)
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  const PORT = process.env.PORT || 5002;
+  app.listen(PORT, () => {
+    console.log(`DiceKing Express Backend running on port ${PORT}`);
+  });
+}
