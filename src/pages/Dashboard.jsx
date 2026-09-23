@@ -227,11 +227,11 @@ const Dashboard = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <Gift size={16} color="var(--success-emerald)" />
               <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--success-emerald)', letterSpacing: '0.5px' }}>
-                REFER & EARN ₹10
+                REFER & EARN ₹50
               </span>
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: '1.5' }}>
-              Share your code — earn ₹10 when your friend makes their first deposit!
+              Share your code — earn ₹50 when your friend makes their first deposit!
             </div>
             <div style={{
               display: 'flex', alignItems: 'center', gap: '10px',

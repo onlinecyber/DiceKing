@@ -157,11 +157,11 @@ const Profile = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
               <Star size={14} color="var(--success-emerald)" fill="var(--success-emerald)" />
               <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--success-emerald)', letterSpacing: '0.5px' }}>
-                REFER & EARN ₹10
+                REFER & EARN ₹50
               </span>
             </div>
             <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
-              Invite friends — earn ₹10 per successful referral!
+              Invite friends — earn ₹50 per successful referral!
             </div>
 
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

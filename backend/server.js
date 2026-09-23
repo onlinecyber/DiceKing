@@ -741,19 +741,19 @@ const adminApproveDeposit = async (data, context) => {
 
         if (referrerWalletSnap.exists) {
           transaction.update(referrerWalletRef, {
-            balance: referrerWalletSnap.data().balance + 10.0,
+            balance: referrerWalletSnap.data().balance + 50.0,
             updatedAt: FieldValue.serverTimestamp()
           });
 
           transaction.update(referrerDoc.ref, {
-            referralEarnings: (referrerData.referralEarnings || 0) + 10.0
+            referralEarnings: (referrerData.referralEarnings || 0) + 50.0
           });
 
           const refTxRef = db.collection('transactions').doc();
           transaction.set(refTxRef, {
             id: refTxRef.id,
             uid: referrerUid,
-            amount: 10.0,
+            amount: 50.0,
             type: 'referral_bonus',
             status: 'success',
             description: `Referral bonus from first deposit of player ${user.displayName || 'Player'}`,
