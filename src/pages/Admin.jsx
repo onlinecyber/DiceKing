@@ -52,7 +52,16 @@ const Admin = () => {
     minDeposit: 100,
     minWithdrawal: 100,
     supportPhone: '',
-    supportTelegram: ''
+    supportTelegram: '',
+    firstDepositBonusEnabled: true,
+    firstDepositTiers: [
+      { minDeposit: 100000, bonus: 800 },
+      { minDeposit: 50000, bonus: 500 },
+      { minDeposit: 10000, bonus: 200 },
+      { minDeposit: 5000, bonus: 100 },
+      { minDeposit: 1000, bonus: 50 },
+      { minDeposit: 500, bonus: 20 }
+    ]
   });
 
   // Dashboard Stats State
@@ -136,7 +145,16 @@ const Admin = () => {
         minDeposit: appSettings.minDeposit || 100,
         minWithdrawal: appSettings.minWithdrawal || 100,
         supportPhone: appSettings.supportPhone || '',
-        supportTelegram: appSettings.supportTelegram || ''
+        supportTelegram: appSettings.supportTelegram || '',
+        firstDepositBonusEnabled: appSettings.firstDepositBonusEnabled !== false,
+        firstDepositTiers: appSettings.firstDepositTiers || [
+          { minDeposit: 100000, bonus: 800 },
+          { minDeposit: 50000, bonus: 500 },
+          { minDeposit: 10000, bonus: 200 },
+          { minDeposit: 5000, bonus: 100 },
+          { minDeposit: 1000, bonus: 50 },
+          { minDeposit: 500, bonus: 20 }
+        ]
       });
     }
   }, [appSettings]);
@@ -630,6 +648,113 @@ const Admin = () => {
                     }}
                   />
                 </div>
+
+                {/* 🎁 FIRST DEPOSIT BONUS CONTROLS SECTION */}
+                <div style={{
+                  gridColumn: 'span 2',
+                  background: 'rgba(255, 215, 0, 0.05)',
+                  border: '1px solid rgba(255, 215, 0, 0.2)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  marginTop: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#ffd700' }}>
+                      🎁 FIRST DEPOSIT BONUS MODAL & REWARDS CONTROL
+                    </div>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.75rem', color: '#fff' }}>
+                      <input
+                        type="checkbox"
+                        checked={adminSettings.firstDepositBonusEnabled !== false}
+                        onChange={e => setAdminSettings({...adminSettings, firstDepositBonusEnabled: e.target.checked})}
+                        style={{ accentColor: '#ffd700', width: '16px', height: '16px' }}
+                      />
+                      Enable Bonus Popup
+                    </label>
+                  </div>
+
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                    Configure bonus reward amounts given on user's first approved deposit based on deposit amount tiers:
+                  </div>
+
+                  {/* Tier Editor List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {adminSettings.firstDepositTiers.map((tier, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0,0,0,0.3)', padding: '8px 10px', borderRadius: '8px' }}>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)' }}>MIN DEPOSIT (₹)</span>
+                          <input
+                            type="number"
+                            value={tier.minDeposit}
+                            onChange={e => {
+                              const updated = [...adminSettings.firstDepositTiers];
+                              updated[idx].minDeposit = Number(e.target.value);
+                              setAdminSettings({...adminSettings, firstDepositTiers: updated});
+                            }}
+                            style={{
+                              background: '#191524', border: '1px solid var(--card-border)', borderRadius: '6px',
+                              padding: '6px', color: '#fff', fontSize: '0.8rem', fontWeight: '700'
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontSize: '0.62rem', color: '#ffd700' }}>EXTRA BONUS (₹)</span>
+                          <input
+                            type="number"
+                            value={tier.bonus}
+                            onChange={e => {
+                              const updated = [...adminSettings.firstDepositTiers];
+                              updated[idx].bonus = Number(e.target.value);
+                              setAdminSettings({...adminSettings, firstDepositTiers: updated});
+                            }}
+                            style={{
+                              background: '#191524', border: '1px solid rgba(255, 215, 0, 0.4)', borderRadius: '6px',
+                              padding: '6px', color: '#ffd700', fontSize: '0.8rem', fontWeight: '800'
+                            }}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = adminSettings.firstDepositTiers.filter((_, i) => i !== idx);
+                            setAdminSettings({...adminSettings, firstDepositTiers: updated});
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)',
+                            color: 'var(--danger-red)', borderRadius: '6px', padding: '6px 10px',
+                            fontWeight: '700', fontSize: '0.7rem', cursor: 'pointer', marginTop: '12px'
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminSettings({
+                        ...adminSettings,
+                        firstDepositTiers: [...adminSettings.firstDepositTiers, { minDeposit: 1000, bonus: 100 }]
+                      });
+                    }}
+                    style={{
+                      background: 'rgba(255, 215, 0, 0.1)', border: '1px dashed rgba(255, 215, 0, 0.4)',
+                      color: '#ffd700', borderRadius: '8px', padding: '8px',
+                      fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', marginTop: '4px'
+                    }}
+                  >
+                    + Add New Deposit Bonus Tier
+                  </button>
+                </div>
+
               </div>
 
               <button

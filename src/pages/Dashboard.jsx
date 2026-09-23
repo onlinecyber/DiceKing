@@ -1,20 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Gamepad2, Wallet, Trophy, History, HeadphonesIcon,
-  Copy, Check, ArrowRight, Gift, Shield
+  Copy, Check, ArrowRight, Gift, Shield, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGame } from '../context/GameContext';
 import Navbar from '../components/Common/Navbar';
 import BottomNav from '../components/Common/BottomNav';
 import GlassCard from '../components/Common/GlassCard';
+import FirstDepositModal from '../components/Common/FirstDepositModal';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { wallet, activeRound, countdown } = useGame();
+  const { wallet, activeRound, countdown, appSettings } = useGame();
   const [copied, setCopied] = useState(false);
+  const [showBonusModal, setShowBonusModal] = useState(false);
+
+  useEffect(() => {
+    // Check if user has opted out of reminders today
+    const hideDate = localStorage.getItem('hideFirstDepositModalDate');
+    const today = new Date().toDateString();
+    
+    if (hideDate !== today && appSettings?.firstDepositBonusEnabled !== false) {
+      // Auto open modal on dashboard load
+      setShowBonusModal(true);
+    }
+  }, [appSettings]);
 
   const handleCopyReferral = () => {
     if (profile?.referralCode) {
@@ -283,7 +296,55 @@ const Dashboard = () => {
           </GlassCard>
         )}
 
+        {/* First Deposit Bonus Banner */}
+        <div
+          onClick={() => setShowBonusModal(true)}
+          style={{
+            background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%)',
+            border: '1px solid rgba(255, 215, 0, 0.3)',
+            borderRadius: '16px',
+            padding: '14px 16px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 4px 20px rgba(255, 215, 0, 0.1)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, #ffd700 0%, #f59e0b 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Sparkles size={18} color="#000" />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: '900', color: '#ffd700' }}>
+                🎁 Extra First Deposit Bonus
+              </div>
+              <div style={{ fontSize: '0.65rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                Claim up to ₹800 bonus on your 1st deposit!
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            background: '#ffd700', color: '#000',
+            fontSize: '0.7rem', fontWeight: '900',
+            padding: '6px 12px', borderRadius: '8px'
+          }}>
+            View Tiers
+          </div>
+        </div>
+
       </div>
+
+      {/* First Deposit Bonus Popup Modal */}
+      <FirstDepositModal
+        isOpen={showBonusModal}
+        onClose={() => setShowBonusModal(false)}
+      />
 
       <BottomNav />
     </div>

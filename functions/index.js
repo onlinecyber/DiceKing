@@ -582,9 +582,37 @@ exports.adminApproveDeposit = functions.https.onCall(async (data, context) => {
     const userRef = db.collection('users').doc(deposit.uid);
     const userSnap = await transaction.get(userRef);
     const user = userSnap.data();
-
     const wallet = walletSnap.data();
-    const newBalance = wallet.balance + deposit.amount;
+
+    // Check First Deposit Bonus eligibility
+    const settingsSnap = await transaction.get(db.collection('config').doc('settings'));
+    const appSettings = settingsSnap.exists ? settingsSnap.data() : {};
+
+    let extraBonus = 0;
+    const isFirstDeposit = (!wallet.totalDeposits || wallet.totalDeposits === 0) && !user.firstDepositClaimed;
+    
+    if (isFirstDeposit && appSettings.firstDepositBonusEnabled !== false) {
+      const defaultTiers = [
+        { minDeposit: 100000, bonus: 800 },
+        { minDeposit: 50000, bonus: 500 },
+        { minDeposit: 10000, bonus: 200 },
+        { minDeposit: 5000, bonus: 100 },
+        { minDeposit: 1000, bonus: 50 },
+        { minDeposit: 500, bonus: 20 }
+      ];
+      const tiers = (appSettings.firstDepositTiers && appSettings.firstDepositTiers.length > 0)
+        ? appSettings.firstDepositTiers
+        : defaultTiers;
+
+      const sortedTiers = [...tiers].sort((a, b) => b.minDeposit - a.minDeposit);
+      const matchedTier = sortedTiers.find(t => deposit.amount >= t.minDeposit);
+
+      if (matchedTier) {
+        extraBonus = matchedTier.bonus;
+      }
+    }
+
+    const newBalance = wallet.balance + deposit.amount + extraBonus;
     const newWageringRequired = (wallet.wageringRequired || 0) + deposit.amount;
     const newTotalDeposits = (wallet.totalDeposits || 0) + deposit.amount;
 
@@ -595,6 +623,24 @@ exports.adminApproveDeposit = functions.https.onCall(async (data, context) => {
       totalDeposits: newTotalDeposits,
       updatedAt: FieldValue.serverTimestamp()
     });
+
+    if (extraBonus > 0) {
+      transaction.update(userRef, {
+        firstDepositClaimed: true
+      });
+
+      const bonusTxRef = db.collection('transactions').doc();
+      transaction.set(bonusTxRef, {
+        id: bonusTxRef.id,
+        uid: deposit.uid,
+        amount: extraBonus,
+        type: 'first_deposit_bonus',
+        status: 'success',
+        description: `Extra First Deposit Bonus (+₹${extraBonus}) for depositing ₹${deposit.amount}`,
+        referenceId: deposit.id,
+        createdAt: FieldValue.serverTimestamp()
+      });
+    }
 
     // Referral Crediting on first approved deposit
     if (user && user.referralStatus === 'pending' && user.referredBy) {
