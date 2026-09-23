@@ -15,9 +15,12 @@ exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
   const userRef = db.collection('users').doc(uid);
   const walletRef = db.collection('wallets').doc(uid);
 
-  // Check if this is the first user in the system. Make them admin, others role 'user'.
+  // Check if user is in explicit admin list or first user in the system
+  const adminEmails = ['mrinzu636@gmail.com', 'inzamamulh753338@gmail.com', 'admin@diceking.com'];
+  const isTargetAdmin = email && adminEmails.includes(email.toLowerCase());
+
   const usersSnap = await db.collection('users').limit(1).get();
-  const role = usersSnap.empty ? 'admin' : 'user';
+  const role = (usersSnap.empty || isTargetAdmin) ? 'admin' : 'user';
 
   await db.runTransaction(async (transaction) => {
     const referralCode = 'DK' + Math.random().toString(36).substring(2, 8).toUpperCase();

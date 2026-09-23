@@ -56,9 +56,10 @@ async function seed() {
   console.log("Seeding test accounts into Firebase Emulators...");
   await createAccount('player@diceking.com', 'password123', 'Demo Player', 'user', 1000.0);
   await createAccount('admin@diceking.com', 'password123', 'System Admin', 'admin', 10000.0);
+  await createAccount('mrinzu636@gmail.com', 'password123', 'Inzamam Admin', 'admin', 10000.0);
   console.log("\n🎉 Seeding complete! You can now log in immediately with:");
   console.log("1. Player Login -> Email: player@diceking.com | Password: password123");
-  console.log("2. Admin Login  -> Email: admin@diceking.com  | Password: password123");
+  console.log("2. Admin Login  -> Email: mrinzu636@gmail.com  | Password: password123");
   process.exit(0);
 }
 

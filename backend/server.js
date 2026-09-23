@@ -141,9 +141,12 @@ const onUserCreated = async (data, context) => {
     return { success: true, message: 'User profile already exists.' };
   }
 
-  // Check if first user in the system to make them admin
+  // Check if user is in explicit admin list or first user in the system
+  const adminEmails = ['mrinzu636@gmail.com', 'inzamamulh753338@gmail.com', 'admin@diceking.com'];
+  const isTargetAdmin = email && adminEmails.includes(email.toLowerCase());
+
   const usersSnap = await db.collection('users').limit(1).get();
-  const role = usersSnap.empty ? 'admin' : 'user';
+  const role = (usersSnap.empty || isTargetAdmin) ? 'admin' : 'user';
 
   await db.runTransaction(async (transaction) => {
     const referralCode = 'DK' + Math.random().toString(36).substring(2, 8).toUpperCase();
