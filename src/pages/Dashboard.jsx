@@ -113,45 +113,6 @@ const Dashboard = () => {
 
       <div className="content-container" style={{ gap: '16px' }}>
 
-        {/* Wallet Balance Card */}
-        <GlassCard style={{ padding: '12px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-            <Wallet size={13} color="var(--accent-gold)" />
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px' }}>WALLET BALANCE</span>
-          </div>
-
-          <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--accent-gold)', marginBottom: '10px', letterSpacing: '-0.5px', textAlign: 'center' }}>
-            ₹{wallet ? wallet.balance.toFixed(2) : '0.00'}
-          </div>
-
-          {wallet?.wageringRequired > 0 && (
-            <div style={{
-              background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)',
-              borderRadius: '8px', padding: '8px 12px', marginBottom: '12px',
-              fontSize: '0.7rem', color: '#f59e0b'
-            }}>
-              ⚠️ Wagering requirement: ₹{wallet.wageringRequired.toFixed(2)} remaining before withdrawal
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={() => navigate('/wallet')}
-              className="btn-gold"
-              style={{ flex: 1, padding: '8px', fontSize: '0.75rem' }}
-            >
-              Deposit
-            </button>
-            <button
-              onClick={() => navigate('/wallet')}
-              className="btn-outline"
-              style={{ flex: 1, padding: '8px', fontSize: '0.75rem' }}
-            >
-              Withdraw
-            </button>
-          </div>
-        </GlassCard>
-
         {/* Play CTA Banner */}
         <div
           onClick={() => navigate('/game')}
