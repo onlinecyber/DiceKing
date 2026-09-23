@@ -76,7 +76,7 @@ const Timer = () => {
         </div>
         
         {/* Timer Blocks or ROLLING Indicator */}
-        {rolling || settling ? (
+        {rolling ? (
           <div style={{ 
             color: 'var(--accent-gold)', 
             fontWeight: '800', 

@@ -196,7 +196,7 @@ exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) =>
     console.log(`Active round found: #${activeRound.roundNumber}, ID: ${activeRound.id}, EndTime: ${activeRound.endTime.toMillis()}, Now: ${now.toMillis()}`);
 
     // Check if the current round timer has expired (with 2s grace period for client-server clock drift)
-    if (now.toMillis() + 2000 < activeRound.endTime.toMillis()) {
+    if (now.toMillis() + 1500 < activeRound.endTime.toMillis()) {
       console.log(`Round #${activeRound.roundNumber} is still active. Remaining time: ${activeRound.endTime.toMillis() - now.toMillis()}ms`);
       return { success: false, message: 'Current round is still active.', activeRound };
     }

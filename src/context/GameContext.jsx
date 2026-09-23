@@ -93,21 +93,27 @@ export const GameProvider = ({ children }) => {
     if (triggerInProgress.current) return;
     triggerInProgress.current = true;
     setSettling(true);
+    setRolling(true);
+
+    const safetyTimer = setTimeout(() => {
+      triggerInProgress.current = false;
+      setSettling(false);
+      setRolling(false);
+    }, 4000);
+
     try {
       console.log("Triggering round settlement...");
       const result = await settleRoundFn();
-      console.log("Round settlement result:", result.data);
-      if (result.data && !result.data.success) {
-        // Wait 2 seconds before letting it retry
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
+      console.log("Round settlement result:", result?.data);
     } catch (error) {
       console.error("Error triggering round settlement:", error);
-      // Wait 2 seconds before letting it retry
-      await new Promise(resolve => setTimeout(resolve, 2000));
     } finally {
-      triggerInProgress.current = false;
-      setSettling(false);
+      clearTimeout(safetyTimer);
+      setTimeout(() => {
+        triggerInProgress.current = false;
+        setSettling(false);
+        setRolling(false);
+      }, 1500);
     }
   };
 
@@ -280,29 +286,35 @@ export const GameProvider = ({ children }) => {
     };
   }, [currentUser]);
 
+  // Safe helper to convert any timestamp format to milliseconds
+  const getMillis = (timeVal) => {
+    if (!timeVal) return Date.now() + 30000;
+    if (typeof timeVal.toMillis === 'function') return timeVal.toMillis();
+    if (typeof timeVal.toDate === 'function') return timeVal.toDate().getTime();
+    if (typeof timeVal.seconds === 'number') return timeVal.seconds * 1000;
+    if (typeof timeVal === 'number') return timeVal;
+    if (typeof timeVal === 'string') return new Date(timeVal).getTime();
+    if (timeVal instanceof Date) return timeVal.getTime();
+    return Date.now() + 30000;
+  };
+
   // 4. Timer ticking interval
   useEffect(() => {
-    if (!activeRound) return;
+    if (!activeRound || !activeRound.endTime) return;
 
     const tick = () => {
       const now = Date.now();
-      const endTime = activeRound.endTime.toMillis();
+      const endTime = getMillis(activeRound.endTime);
       const deltaSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
       
-      // If rolling or settling is in progress, hold countdown at 0 to prevent timer jumping ahead
-      if (rolling || settling) {
-        setCountdown(0);
-        return;
-      }
-
       setCountdown(deltaSeconds);
 
-      if (deltaSeconds > 0 && deltaSeconds <= 5) {
+      if (deltaSeconds > 0 && deltaSeconds <= 5 && !rolling) {
         soundManager.playTick();
       }
 
       // If timer hit 0, settle the round
-      if (deltaSeconds <= 0 && activeRound.status === 'active' && !settling) {
+      if (deltaSeconds <= 0 && activeRound.status === 'active' && !settling && !triggerInProgress.current) {
         triggerSettleRound();
       }
     };
