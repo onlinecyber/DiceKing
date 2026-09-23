@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { useGame } from '../../context/GameContext';
 
 const FirstDepositModal = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const { appSettings, wallet } = useGame();
   const [noRemindToday, setNoRemindToday] = useState(false);
+
+  const hasDeposited = (wallet?.totalDeposits && wallet.totalDeposits > 0) || profile?.firstDepositClaimed === true;
 
   const defaultTiers = [
     { minDeposit: 100000, bonus: 800 },
@@ -39,7 +43,7 @@ const FirstDepositModal = ({ isOpen, onClose }) => {
     navigate('/deposit', { state: { prefilledAmount: amount } });
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || hasDeposited) return null;
 
   return (
     <div style={{

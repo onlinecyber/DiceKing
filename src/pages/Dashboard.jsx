@@ -15,19 +15,24 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { wallet, activeRound, countdown, appSettings } = useGame();
-  const [copied, setCopied] = useState(false);
-  const [showBonusModal, setShowBonusModal] = useState(false);
+  const hasDeposited = (wallet?.totalDeposits && wallet.totalDeposits > 0) || profile?.firstDepositClaimed === true;
 
   useEffect(() => {
+    // If user has already made a deposit, do NOT show the popup offer
+    if (hasDeposited) {
+      setShowBonusModal(false);
+      return;
+    }
+
     // Check if user has opted out of reminders today
     const hideDate = localStorage.getItem('hideFirstDepositModalDate');
     const today = new Date().toDateString();
     
     if (hideDate !== today && appSettings?.firstDepositBonusEnabled !== false) {
-      // Auto open modal on dashboard load
+      // Auto open modal on dashboard load if user hasn't deposited yet
       setShowBonusModal(true);
     }
-  }, [appSettings]);
+  }, [appSettings, wallet, profile, hasDeposited]);
 
   const handleCopyReferral = () => {
     if (profile?.referralCode) {
@@ -296,47 +301,49 @@ const Dashboard = () => {
           </GlassCard>
         )}
 
-        {/* First Deposit Bonus Banner */}
-        <div
-          onClick={() => setShowBonusModal(true)}
-          style={{
-            background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%)',
-            border: '1px solid rgba(255, 215, 0, 0.3)',
-            borderRadius: '16px',
-            padding: '14px 16px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxShadow: '0 4px 20px rgba(255, 215, 0, 0.1)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '36px', height: '36px', borderRadius: '10px',
-              background: 'linear-gradient(135deg, #ffd700 0%, #f59e0b 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <Sparkles size={18} color="#000" />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: '900', color: '#ffd700' }}>
-                🎁 Extra First Deposit Bonus
+        {/* First Deposit Bonus Banner (Only shown if user has not completed first deposit) */}
+        {!hasDeposited && (
+          <div
+            onClick={() => setShowBonusModal(true)}
+            style={{
+              background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%)',
+              border: '1px solid rgba(255, 215, 0, 0.3)',
+              borderRadius: '16px',
+              padding: '14px 16px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 4px 20px rgba(255, 215, 0, 0.1)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #ffd700 0%, #f59e0b 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <Sparkles size={18} color="#000" />
               </div>
-              <div style={{ fontSize: '0.65rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-                Claim up to ₹800 bonus on your 1st deposit!
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: '900', color: '#ffd700' }}>
+                  🎁 Extra First Deposit Bonus
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                  Claim up to ₹800 bonus on your 1st deposit!
+                </div>
               </div>
             </div>
-          </div>
 
-          <div style={{
-            background: '#ffd700', color: '#000',
-            fontSize: '0.7rem', fontWeight: '900',
-            padding: '6px 12px', borderRadius: '8px'
-          }}>
-            View Tiers
+            <div style={{
+              background: '#ffd700', color: '#000',
+              fontSize: '0.7rem', fontWeight: '900',
+              padding: '6px 12px', borderRadius: '8px'
+            }}>
+              View Tiers
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
 
