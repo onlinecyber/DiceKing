@@ -161,7 +161,7 @@ const onUserCreated = async (data, context) => {
 
     transaction.set(walletRef, {
       uid,
-      balance: 10.0, // Starter bonus ₹10
+      balance: 20.0, // Starter bonus ₹20
       wageringRequired: 0.0,
       totalDeposits: 0.0,
       totalBets: 0.0,

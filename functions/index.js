@@ -35,7 +35,7 @@ exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
 
     transaction.set(walletRef, {
       uid,
-      balance: 10.0, // Starter bonus balance changed to ₹10
+      balance: 20.0, // Starter bonus balance changed to ₹20
       wageringRequired: 0.0,
       totalDeposits: 0.0,
       totalBets: 0.0,

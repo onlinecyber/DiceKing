@@ -72,7 +72,7 @@ const Register = () => {
             DICE KING
           </h1>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Start your journey with ₹10 welcome bonus
+            Start your journey with ₹20 welcome bonus
           </span>
         </div>
 
