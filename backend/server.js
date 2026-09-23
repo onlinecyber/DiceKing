@@ -207,7 +207,12 @@ const placeBet = async (data, context) => {
   const txRef = db.collection('transactions').doc();
 
   return db.runTransaction(async (transaction) => {
-    const roundSnap = await transaction.get(roundRef);
+    // Parallel reads for optimal performance
+    const [roundSnap, walletSnap] = await Promise.all([
+      transaction.get(roundRef),
+      transaction.get(walletRef)
+    ]);
+
     if (!roundSnap.exists) {
       throw new HttpsError('not-found', 'Game round not found.');
     }
@@ -222,7 +227,6 @@ const placeBet = async (data, context) => {
       throw new HttpsError('failed-precondition', 'Betting is closed for this round.');
     }
 
-    const walletSnap = await transaction.get(walletRef);
     if (!walletSnap.exists) {
       throw new HttpsError('not-found', 'User wallet not found.');
     }
@@ -231,8 +235,7 @@ const placeBet = async (data, context) => {
       throw new HttpsError('failed-precondition', 'Insufficient balance to place bet.');
     }
 
-    const userSnap = await transaction.get(db.collection('users').doc(uid));
-    const displayName = userSnap.exists ? userSnap.data().displayName : 'Player';
+    const displayName = data.displayName || (context.auth && (context.auth.name || context.auth.displayName)) || 'Player';
 
     const newBalance = wallet.balance - amount;
     const newWageringRequired = Math.max(0, (wallet.wageringRequired || 0) - amount);

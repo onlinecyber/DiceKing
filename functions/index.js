@@ -77,8 +77,12 @@ exports.placeBet = functions.https.onCall(async (data, context) => {
   const txRef = db.collection('transactions').doc();
 
   return db.runTransaction(async (transaction) => {
-    // 1. Verify round status
-    const roundSnap = await transaction.get(roundRef);
+    // 1. Parallel fetch round and wallet status
+    const [roundSnap, walletSnap] = await Promise.all([
+      transaction.get(roundRef),
+      transaction.get(walletRef)
+    ]);
+
     if (!roundSnap.exists) {
       throw new functions.https.HttpsError('not-found', 'Game round not found.');
     }
@@ -95,7 +99,6 @@ exports.placeBet = functions.https.onCall(async (data, context) => {
     }
 
     // 2. Verify wallet balance
-    const walletSnap = await transaction.get(walletRef);
     if (!walletSnap.exists) {
       throw new functions.https.HttpsError('not-found', 'User wallet not found.');
     }
@@ -104,9 +107,8 @@ exports.placeBet = functions.https.onCall(async (data, context) => {
       throw new functions.https.HttpsError('failed-precondition', 'Insufficient balance to place bet.');
     }
 
-    // 3. Get user details
-    const userSnap = await transaction.get(db.collection('users').doc(uid));
-    const displayName = userSnap.exists ? userSnap.data().displayName : 'Player';
+    // 3. User details from data / auth token
+    const displayName = data.displayName || (context.auth && (context.auth.name || context.auth.displayName)) || 'Player';
 
     // 4. Perform debit
     const newBalance = wallet.balance - amount;

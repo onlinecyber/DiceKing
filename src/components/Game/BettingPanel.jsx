@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Coins } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { soundManager } from '../../utils/soundManager';
 import GlassCard from '../Common/GlassCard';
 
 const BettingPanel = () => {
@@ -12,6 +13,12 @@ const BettingPanel = () => {
   const [quantity, setQuantity] = useState(1);
   const [agreed, setAgreed] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [optimisticBets, setOptimisticBets] = useState([]);
+
+  // Reset optimistic bets when active round changes
+  useEffect(() => {
+    setOptimisticBets([]);
+  }, [activeRound?.id]);
 
   // Betting state checks
   const isLocked = countdown <= 2 || !activeRound;
@@ -22,9 +29,13 @@ const BettingPanel = () => {
     : [];
 
   const getBetAmountOnType = (type, exactValue = null) => {
-    return currentRoundBets
+    const confirmed = currentRoundBets
       .filter(b => b.type === type && (exactValue === null || b.exactValue === exactValue))
       .reduce((sum, b) => sum + b.amount, 0);
+    const optimistic = optimisticBets
+      .filter(b => b.type === type && (exactValue === null || b.exactValue === exactValue))
+      .reduce((sum, b) => sum + b.amount, 0);
+    return confirmed + optimistic;
   };
 
   const handleBetClick = (type, exactValue = null) => {
@@ -44,12 +55,20 @@ const BettingPanel = () => {
       alert("Insufficient balance!");
       return;
     }
+
+    const { type, exactValue } = modalState;
+    // 0ms INSTANT UX: Close modal immediately, show badge & play sound
+    setModalState({ isOpen: false, type: null, exactValue: null });
+    setOptimisticBets(prev => [...prev, { type, exactValue, amount: total }]);
+    soundManager.playClick();
+
     setLoading(true);
     try {
-      await placeBet(modalState.type, modalState.exactValue, total);
-      setModalState({ isOpen: false, type: null, exactValue: null });
+      await placeBet(type, exactValue, total);
     } catch (e) {
       console.error(e);
+      // Revert optimistic badge on error
+      setOptimisticBets(prev => prev.filter(b => !(b.type === type && b.exactValue === exactValue && b.amount === total)));
     } finally {
       setLoading(false);
     }

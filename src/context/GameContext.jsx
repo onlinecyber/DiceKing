@@ -70,19 +70,31 @@ export const GameProvider = ({ children }) => {
   const submitDepositFn = (data) => callApi('submitDepositRequest', data);
   const submitWithdrawalFn = (data) => callApi('submitWithdrawalRequest', data);
 
-  // Place Bet wrapper
+  // Place Bet wrapper (Instant Optimistic Feedback)
   const placeBet = async (type, exactValue, amount) => {
     if (!activeRound) throw new Error("No active round available.");
+
+    // Instant local wallet balance deduction
+    const prevBalance = wallet?.balance;
+    if (wallet && typeof wallet.balance === 'number') {
+      setWallet(prev => prev ? { ...prev, balance: Math.max(0, prev.balance - amount) } : prev);
+    }
+
     try {
       const result = await placeBetFn({
         roundId: activeRound.id,
         type,
         exactValue: type === 'exact' ? Number(exactValue) : null,
-        amount: Number(amount)
+        amount: Number(amount),
+        displayName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Player'
       });
       showToast(`Bet of ₹${amount} placed successfully!`, 'success');
       return result.data;
     } catch (error) {
+      // Revert optimistic balance if failed
+      if (typeof prevBalance === 'number') {
+        setWallet(prev => prev ? { ...prev, balance: prevBalance } : prev);
+      }
       showToast(error.message || "Failed to place bet.", 'error');
       throw error;
     }
