@@ -445,6 +445,20 @@ const settleRoundAndStartNew = async (data, context) => {
         }
       }
 
+      // Fetch all needed wallet and leaderboard documents FIRST (ALL READS BEFORE ANY WRITES)
+      const walletSnaps = {};
+      for (const uid of Object.keys(walletsToUpdate)) {
+        const walletRef = db.collection('wallets').doc(uid);
+        walletSnaps[uid] = await transaction.get(walletRef);
+      }
+
+      const lbSnaps = {};
+      for (const uid of Object.keys(leaderboardToUpdate)) {
+        const lbRef = db.collection('leaderboard').doc(uid);
+        lbSnaps[uid] = await transaction.get(lbRef);
+      }
+
+      // PERFORM ALL WRITES (NO READS BELOW THIS POINT)
       for (const update of betsToUpdate) {
         transaction.update(update.ref, {
           status: update.status,
@@ -453,9 +467,9 @@ const settleRoundAndStartNew = async (data, context) => {
       }
 
       for (const [uid, payout] of Object.entries(walletsToUpdate)) {
-        const walletRef = db.collection('wallets').doc(uid);
-        const walletSnap = await transaction.get(walletRef);
-        if (walletSnap.exists) {
+        const walletSnap = walletSnaps[uid];
+        if (walletSnap && walletSnap.exists) {
+          const walletRef = db.collection('wallets').doc(uid);
           transaction.update(walletRef, {
             balance: walletSnap.data().balance + payout,
             updatedAt: now
@@ -476,9 +490,9 @@ const settleRoundAndStartNew = async (data, context) => {
       }
 
       for (const [uid, data] of Object.entries(leaderboardToUpdate)) {
+        const lbSnap = lbSnaps[uid];
         const lbRef = db.collection('leaderboard').doc(uid);
-        const lbSnap = await transaction.get(lbRef);
-        if (lbSnap.exists) {
+        if (lbSnap && lbSnap.exists) {
           transaction.update(lbRef, {
             totalWinnings: lbSnap.data().totalWinnings + data.winnings,
             updatedAt: now
@@ -829,17 +843,18 @@ const adminApproveWithdrawal = async (data, context) => {
       throw new HttpsError('failed-precondition', 'Withdrawal has already been processed.');
     }
 
+    const txsQuery = db.collection('transactions')
+      .where('referenceId', '==', withdrawalId)
+      .where('type', '==', 'withdrawal')
+      .limit(1);
+    const txsSnap = await transaction.get(txsQuery);
+
     transaction.update(withdrawalRef, {
       status: 'approved',
       processedBy: adminUid,
       processedAt: FieldValue.serverTimestamp()
     });
 
-    const txsQuery = db.collection('transactions')
-      .where('referenceId', '==', withdrawalId)
-      .where('type', '==', 'withdrawal')
-      .limit(1);
-    const txsSnap = await transaction.get(txsQuery);
     if (!txsSnap.empty) {
       transaction.update(txsSnap.docs[0].ref, {
         status: 'success'
@@ -876,6 +891,12 @@ const adminRejectWithdrawal = async (data, context) => {
     if (!walletSnap.exists) {
       throw new HttpsError('not-found', 'Wallet not found.');
     }
+
+    const txsQuery = db.collection('transactions')
+      .where('referenceId', '==', withdrawalId)
+      .where('type', '==', 'withdrawal')
+      .limit(1);
+    const txsSnap = await transaction.get(txsQuery);
 
     transaction.update(walletRef, {
       balance: walletSnap.data().balance + withdrawal.amount,
