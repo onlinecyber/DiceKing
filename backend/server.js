@@ -1092,10 +1092,10 @@ app.use((req, res) => {
 
 module.exports = app;
 
-// Start Server (if not running in Vercel Serverless environment)
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+// Start Server (runs as standalone server on Render/local, exports app for serverless)
+if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5002;
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`DiceKing Express Backend running on port ${PORT}`);
   });
 }
