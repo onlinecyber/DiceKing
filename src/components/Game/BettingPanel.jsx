@@ -87,13 +87,11 @@ const BettingPanel = () => {
         
         {/* Exact Sum Multipliers (Organized into 2 clean rows of compact 3D Number Balls) */}
         <div style={{ background: 'rgba(23, 27, 54, 0.7)', borderRadius: '16px', padding: '10px 8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-          {/* Row 1: Numbers 2 to 7 (6 Balls) */}
+          {/* Row 1: Numbers 2 to 6 (5 Balls - DOWN) */}
           <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginBottom: '8px' }}>
-            {[2, 3, 4, 5, 6, 7].map(num => {
-              const bgGradient = num <= 6
-                ? 'radial-gradient(circle at 35% 35%, #ff7b7b, #ef4444 60%, #991b1b)'
-                : 'radial-gradient(circle at 35% 35%, #ffe875, #eab308 60%, #854d0e)';
-              const shadowColor = num <= 6 ? 'rgba(239, 68, 68, 0.35)' : 'rgba(234, 179, 8, 0.35)';
+            {[2, 3, 4, 5, 6].map(num => {
+              const bgGradient = 'radial-gradient(circle at 35% 35%, #ff7b7b, #ef4444 60%, #991b1b)';
+              const shadowColor = 'rgba(239, 68, 68, 0.35)';
 
               return (
                 <button
