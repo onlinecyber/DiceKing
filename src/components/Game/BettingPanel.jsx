@@ -85,19 +85,15 @@ const BettingPanel = () => {
       {/* 2. Main Betting Options Grid */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         
-        {/* Exact Sum Multipliers (Organized into 2 clean rows of Tiranga-style 3D Number Balls) */}
-        <div style={{ background: 'rgba(23, 27, 54, 0.7)', borderRadius: '20px', padding: '16px 12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-secondary)', marginBottom: '12px', textAlign: 'center', letterSpacing: '1px' }}>
-            SELECT EXACT SUM (NUMBER BALLS)
-          </div>
-
+        {/* Exact Sum Multipliers (Organized into 2 clean rows of compact 3D Number Balls) */}
+        <div style={{ background: 'rgba(23, 27, 54, 0.7)', borderRadius: '16px', padding: '10px 8px', border: '1px solid rgba(255,255,255,0.06)' }}>
           {/* Row 1: Numbers 2 to 7 (6 Balls) */}
-          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginBottom: '8px' }}>
             {[2, 3, 4, 5, 6, 7].map(num => {
               const bgGradient = num <= 6
                 ? 'radial-gradient(circle at 35% 35%, #ff7b7b, #ef4444 60%, #991b1b)'
                 : 'radial-gradient(circle at 35% 35%, #ffe875, #eab308 60%, #854d0e)';
-              const shadowColor = num <= 6 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(234, 179, 8, 0.4)';
+              const shadowColor = num <= 6 ? 'rgba(239, 68, 68, 0.35)' : 'rgba(234, 179, 8, 0.35)';
 
               return (
                 <button
@@ -111,27 +107,27 @@ const BettingPanel = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '2px',
                     position: 'relative'
                   }}
                 >
                   <div style={{
-                    width: '44px',
-                    height: '44px',
+                    width: '36px',
+                    height: '36px',
                     borderRadius: '50%',
                     background: bgGradient,
-                    boxShadow: `0 4px 12px ${shadowColor}, inset -2px -2px 4px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6)`,
+                    boxShadow: `0 3px 8px ${shadowColor}, inset -2px -2px 3px rgba(0,0,0,0.4), inset 2px 2px 3px rgba(255,255,255,0.6)`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#fff',
                     fontWeight: '900',
-                    fontSize: '1.2rem',
+                    fontSize: '1rem',
                     textShadow: '0 2px 4px rgba(0,0,0,0.6)'
                   }}>
                     {num}
                   </div>
-                  <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#ffd700' }}>
+                  <span style={{ fontSize: '0.58rem', fontWeight: '800', color: '#ffd700' }}>
                     {exactMultipliers[num]}x
                   </span>
 
@@ -142,7 +138,7 @@ const BettingPanel = () => {
                       top: '-4px', right: '-4px',
                       background: 'var(--accent-gold)', color: '#000',
                       fontSize: '0.55rem', fontWeight: '900',
-                      padding: '1px 5px', borderRadius: '8px',
+                      padding: '1px 4px', borderRadius: '6px',
                       boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
                     }}>
                       ₹{getBetAmountOnType('exact', num)}
@@ -157,7 +153,7 @@ const BettingPanel = () => {
           <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
             {[8, 9, 10, 11, 12].map(num => {
               const bgGradient = 'radial-gradient(circle at 35% 35%, #6ee7b7, #10b981 60%, #065f46)';
-              const shadowColor = 'rgba(16, 185, 129, 0.4)';
+              const shadowColor = 'rgba(16, 185, 129, 0.35)';
 
               return (
                 <button
@@ -171,27 +167,27 @@ const BettingPanel = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '2px',
                     position: 'relative'
                   }}
                 >
                   <div style={{
-                    width: '44px',
-                    height: '44px',
+                    width: '36px',
+                    height: '36px',
                     borderRadius: '50%',
                     background: bgGradient,
-                    boxShadow: `0 4px 12px ${shadowColor}, inset -2px -2px 4px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6)`,
+                    boxShadow: `0 3px 8px ${shadowColor}, inset -2px -2px 3px rgba(0,0,0,0.4), inset 2px 2px 3px rgba(255,255,255,0.6)`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#fff',
                     fontWeight: '900',
-                    fontSize: '1.2rem',
+                    fontSize: '1rem',
                     textShadow: '0 2px 4px rgba(0,0,0,0.6)'
                   }}>
                     {num}
                   </div>
-                  <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#ffd700' }}>
+                  <span style={{ fontSize: '0.58rem', fontWeight: '800', color: '#ffd700' }}>
                     {exactMultipliers[num]}x
                   </span>
 
@@ -202,7 +198,7 @@ const BettingPanel = () => {
                       top: '-4px', right: '-4px',
                       background: 'var(--accent-gold)', color: '#000',
                       fontSize: '0.55rem', fontWeight: '900',
-                      padding: '1px 5px', borderRadius: '8px',
+                      padding: '1px 4px', borderRadius: '6px',
                       boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
                     }}>
                       ₹{getBetAmountOnType('exact', num)}
@@ -214,8 +210,8 @@ const BettingPanel = () => {
           </div>
         </div>
 
-        {/* UP and DOWN Large Side-by-Side Pill Buttons (Matching Big/Small in Tiranga) */}
-        <div style={{ display: 'flex', gap: '12px' }}>
+        {/* DOWN, 7, and UP Side-by-Side Pill Buttons */}
+        <div style={{ display: 'flex', gap: '8px' }}>
           {/* DOWN BUTTON (Red Pill - 1st) */}
           <button
             disabled={isLocked || loading}
@@ -224,11 +220,11 @@ const BettingPanel = () => {
               flex: 1,
               background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
               border: 'none',
-              borderRadius: '24px',
-              padding: '14px 10px',
+              borderRadius: '20px',
+              padding: '12px 6px',
               cursor: isLocked ? 'not-allowed' : 'pointer',
               color: '#fff',
-              boxShadow: '0 6px 20px rgba(239, 68, 68, 0.4)',
+              boxShadow: '0 6px 18px rgba(239, 68, 68, 0.4)',
               transition: 'all 0.2s ease',
               position: 'relative',
               display: 'flex',
@@ -237,23 +233,60 @@ const BettingPanel = () => {
               justifyContent: 'center'
             }}
           >
-            <div style={{ fontSize: '1.3rem', fontWeight: '900', letterSpacing: '1px' }}>DOWN</div>
-            <div style={{ fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>SUM 2-6 (2x Payout)</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '0.5px' }}>DOWN</div>
+            <div style={{ fontSize: '0.62rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>2-6 (2x)</div>
 
             {getBetAmountOnType('down') > 0 && (
               <div style={{
-                position: 'absolute', top: '6px', right: '10px',
+                position: 'absolute', top: '4px', right: '6px',
                 background: '#000', color: '#ffd700',
-                fontSize: '0.6rem', fontWeight: '900',
-                padding: '2px 6px', borderRadius: '10px',
+                fontSize: '0.55rem', fontWeight: '900',
+                padding: '1px 5px', borderRadius: '8px',
                 display: 'flex', alignItems: 'center', gap: '2px'
               }}>
-                <Coins size={10} /> ₹{getBetAmountOnType('down')}
+                <Coins size={9} /> ₹{getBetAmountOnType('down')}
               </div>
             )}
           </button>
 
-          {/* UP BUTTON (Green Pill - 2nd) */}
+          {/* 7 BUTTON (Gold/Amber Pill - 2nd / Middle) */}
+          <button
+            disabled={isLocked || loading}
+            onClick={() => handleBetClick('exact', 7)}
+            style={{
+              flex: 1,
+              background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+              border: 'none',
+              borderRadius: '20px',
+              padding: '12px 6px',
+              cursor: isLocked ? 'not-allowed' : 'pointer',
+              color: '#fff',
+              boxShadow: '0 6px 18px rgba(217, 119, 6, 0.45)',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <div style={{ fontSize: '1.25rem', fontWeight: '900', letterSpacing: '0.5px', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>7</div>
+            <div style={{ fontSize: '0.62rem', fontWeight: '700', color: 'rgba(255,255,255,0.95)' }}>LUCKY (5x)</div>
+
+            {getBetAmountOnType('exact', 7) > 0 && (
+              <div style={{
+                position: 'absolute', top: '4px', right: '6px',
+                background: '#000', color: '#ffd700',
+                fontSize: '0.55rem', fontWeight: '900',
+                padding: '1px 5px', borderRadius: '8px',
+                display: 'flex', alignItems: 'center', gap: '2px'
+              }}>
+                <Coins size={9} /> ₹{getBetAmountOnType('exact', 7)}
+              </div>
+            )}
+          </button>
+
+          {/* UP BUTTON (Green Pill - 3rd) */}
           <button
             disabled={isLocked || loading}
             onClick={() => handleBetClick('up')}
@@ -261,11 +294,11 @@ const BettingPanel = () => {
               flex: 1,
               background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               border: 'none',
-              borderRadius: '24px',
-              padding: '14px 10px',
+              borderRadius: '20px',
+              padding: '12px 6px',
               cursor: isLocked ? 'not-allowed' : 'pointer',
               color: '#fff',
-              boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)',
+              boxShadow: '0 6px 18px rgba(16, 185, 129, 0.4)',
               transition: 'all 0.2s ease',
               position: 'relative',
               display: 'flex',
@@ -274,18 +307,18 @@ const BettingPanel = () => {
               justifyContent: 'center'
             }}
           >
-            <div style={{ fontSize: '1.3rem', fontWeight: '900', letterSpacing: '1px' }}>UP</div>
-            <div style={{ fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>SUM 8-12 (2x Payout)</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '0.5px' }}>UP</div>
+            <div style={{ fontSize: '0.62rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>8-12 (2x)</div>
 
             {getBetAmountOnType('up') > 0 && (
               <div style={{
-                position: 'absolute', top: '6px', right: '10px',
+                position: 'absolute', top: '4px', right: '6px',
                 background: '#000', color: '#ffd700',
-                fontSize: '0.6rem', fontWeight: '900',
-                padding: '2px 6px', borderRadius: '10px',
+                fontSize: '0.55rem', fontWeight: '900',
+                padding: '1px 5px', borderRadius: '8px',
                 display: 'flex', alignItems: 'center', gap: '2px'
               }}>
-                <Coins size={10} /> ₹{getBetAmountOnType('up')}
+                <Coins size={9} /> ₹{getBetAmountOnType('up')}
               </div>
             )}
           </button>
@@ -311,13 +344,14 @@ const BettingPanel = () => {
             <div style={{
               background: modalState.type === 'up' ? '#10b981' : 
                           modalState.type === 'down' ? '#ef4444' : 
+                          modalState.exactValue === 7 ? 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)' :
                           modalState.type === 'odd' ? '#8b5cf6' :
                           modalState.type === 'even' ? '#3b82f6' : '#4f46e5',
               padding: '12px', borderRadius: '12px', textAlign: 'center',
               color: '#fff', fontWeight: '800', fontSize: '1.2rem', textTransform: 'capitalize',
               boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
             }}>
-              Select {modalState.type === 'exact' ? `Exact ${modalState.exactValue} (${exactMultipliers[modalState.exactValue]}x Payout)` : modalState.type}
+              Select {modalState.type === 'exact' ? (modalState.exactValue === 7 ? `Lucky 7 (${exactMultipliers[7]}x Payout)` : `Exact ${modalState.exactValue} (${exactMultipliers[modalState.exactValue]}x Payout)`) : modalState.type}
             </div>
 
             {/* Base Amount Selector */}
