@@ -74,7 +74,6 @@ exports.placeBet = functions.https.onCall(async (data, context) => {
   const roundRef = db.collection('gameRounds').doc(roundId);
   const walletRef = db.collection('wallets').doc(uid);
   const betRef = db.collection('bets').doc();
-  const txRef = db.collection('transactions').doc();
 
   return db.runTransaction(async (transaction) => {
     // 1. Parallel fetch round and wallet status
@@ -134,18 +133,6 @@ exports.placeBet = functions.https.onCall(async (data, context) => {
       exactValue: type === 'exact' ? exactValue : null,
       status: 'pending',
       payout: 0,
-      createdAt: FieldValue.serverTimestamp()
-    });
-
-    // 6. Log transaction
-    transaction.set(txRef, {
-      id: txRef.id,
-      uid,
-      amount: -amount,
-      type: 'bet_place',
-      status: 'success',
-      description: `Placed bet on ${type === 'exact' ? `exact ${exactValue}` : type} for Round #${round.roundNumber}`,
-      referenceId: betRef.id,
       createdAt: FieldValue.serverTimestamp()
     });
 
@@ -369,19 +356,6 @@ exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) =>
           updatedAt: now
         });
       }
-
-      // Log transaction
-      const txRef = db.collection('transactions').doc();
-      transaction.set(txRef, {
-        id: txRef.id,
-        uid,
-        amount: payout,
-        type: 'bet_win',
-        status: 'success',
-        description: `Payout for winning bet in Round #${activeRound.roundNumber} (5% GST Deducted)`,
-        referenceId: activeRound.id,
-        createdAt: now
-      });
     }
 
     for (const [uid, data] of Object.entries(leaderboardToUpdate)) {

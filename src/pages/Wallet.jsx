@@ -16,18 +16,25 @@ const Wallet = () => {
   const [txHistory, setTxHistory] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Load recent transactions (last 20)
+  // Load recent wallet transactions (excluding game bets/winnings)
   useEffect(() => {
     if (!currentUser) return;
     const txQuery = query(
       collection(db, 'transactions'),
       where('uid', '==', currentUser.uid),
       orderBy('createdAt', 'desc'),
-      limit(20)
+      limit(50)
     );
     const unsub = onSnapshot(
       txQuery,
-      (snap) => setTxHistory(snap.docs.map((d) => d.data())),
+      (snap) => {
+        const allTxs = snap.docs.map((d) => d.data());
+        // Exclude all game history, bet placement, and bet win payouts from wallet history
+        const walletOnly = allTxs.filter(
+          (tx) => tx.type !== 'bet_place' && tx.type !== 'bet_win' && !tx.type?.startsWith('bet_')
+        );
+        setTxHistory(walletOnly.slice(0, 20));
+      },
       (err) => console.error('Tx load error', err)
     );
     return () => unsub();
@@ -64,9 +71,9 @@ const Wallet = () => {
         </GlassCard>
         {/* Transaction History */}
         <GlassCard style={{ padding: '16px' }}>
-          <h3 style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '8px' }}>RECENT TRANSACTIONS</h3>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '8px' }}>WALLET HISTORY</h3>
           {txHistory.length === 0 ? (
-            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px 0' }}>No transactions yet. Make your first deposit!</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px 0' }}>No wallet transactions yet. Make your first deposit!</div>
           ) : (
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {txHistory.map((tx, idx) => {

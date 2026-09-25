@@ -29,7 +29,7 @@ const History = () => {
   const [data, setData] = useState([]);
 
   const tabs = [
-    { id: 'games', label: 'Games', icon: Gamepad2 },
+    { id: 'games', label: 'My History', icon: Gamepad2 },
     { id: 'deposits', label: 'Recharges', icon: ArrowDownLeft },
     { id: 'withdrawals', label: 'Withdraws', icon: ArrowUpRight },
     { id: 'ledger', label: 'Passbook', icon: BookOpen },
@@ -61,7 +61,14 @@ const History = () => {
       );
       
       const snap = await getDocs(q);
-      const results = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let results = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Exclude game history from ledger/passbook
+      if (activeTab === 'ledger') {
+        results = results.filter(
+          item => !item.type?.startsWith('bet_') && item.type !== 'bet_place' && item.type !== 'bet_win'
+        );
+      }
       
       // Sort in memory to avoid missing index errors
       const sorted = results.sort((a, b) => {
@@ -164,7 +171,7 @@ const History = () => {
                   badgeText = item.status;
                   badgeColor = item.status === 'won' ? 'var(--success-emerald)' : item.status === 'pending' ? 'var(--accent-gold)' : 'var(--danger-red)';
                   amountText = item.status === 'won' ? `+₹${item.payout.toFixed(2)}` : `-₹${item.amount.toFixed(2)}`;
-                  amountColor = item.status === 'won' ? 'var(--success-emerald)' : 'var(--text-primary)';
+                  amountColor = item.status === 'won' ? 'var(--success-emerald)' : 'var(--danger-red)';
                   
                   if (item.status === 'lost') {
                     detailText = `Lost ₹${item.amount.toFixed(2)}`;
