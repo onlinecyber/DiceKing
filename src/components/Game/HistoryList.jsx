@@ -315,16 +315,15 @@ const HistoryList = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1.2fr 1fr 0.8fr 1.2fr',
+                gridTemplateColumns: '1.4fr 1.1fr 1fr',
                 paddingBottom: '6px',
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
-                fontSize: '0.68rem',
+                fontSize: '0.7rem',
                 color: 'var(--text-secondary)',
                 fontWeight: '700'
               }}>
                 <span>ROUND</span>
                 <span>SELECT</span>
-                <span style={{ textAlign: 'center' }}>BET</span>
                 <span style={{ textAlign: 'right' }}>RESULT</span>
               </div>
 
@@ -346,7 +345,7 @@ const HistoryList = () => {
                   >
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: '1.2fr 1fr 0.8fr 1.2fr',
+                      gridTemplateColumns: '1.4fr 1.1fr 1fr',
                       alignItems: 'center',
                       fontSize: '0.78rem'
                     }}>
@@ -354,7 +353,7 @@ const HistoryList = () => {
                       <div style={{
                         color: 'var(--text-secondary)',
                         fontFamily: 'monospace',
-                        fontSize: '0.72rem',
+                        fontSize: '0.74rem',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap'
@@ -367,68 +366,24 @@ const HistoryList = () => {
                         {renderBetSelectionBadge(b)}
                       </div>
 
-                      {/* Bet Amount */}
-                      <div style={{ textAlign: 'center', fontWeight: '700', color: '#fff' }}>
-                        ₹{Number(b.amount || 0).toFixed(0)}
-                      </div>
-
-                      {/* Result: Win / Loss Amount */}
-                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                      {/* Result: Only Win or Loss Amount */}
+                      <div style={{ textAlign: 'right' }}>
                         {isWon && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{
-                              background: 'rgba(16, 185, 129, 0.2)',
-                              border: '1px solid #10b981',
-                              color: '#10b981',
-                              padding: '1px 5px',
-                              borderRadius: '4px',
-                              fontSize: '0.62rem',
-                              fontWeight: '800'
-                            }}>
-                              WIN
-                            </span>
-                            <span style={{ color: '#10b981', fontWeight: '900', fontSize: '0.82rem' }}>
-                              +₹{Number(b.payout || 0).toFixed(2)}
-                            </span>
-                          </div>
+                          <span style={{ color: 'var(--success-emerald)', fontWeight: '900', fontSize: '0.86rem' }}>
+                            +₹{Number(b.payout || 0).toFixed(2)}
+                          </span>
                         )}
 
                         {isLost && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{
-                              background: 'rgba(239, 68, 68, 0.2)',
-                              border: '1px solid #ef4444',
-                              color: '#ef4444',
-                              padding: '1px 5px',
-                              borderRadius: '4px',
-                              fontSize: '0.62rem',
-                              fontWeight: '800'
-                            }}>
-                              FAIL
-                            </span>
-                            <span style={{ color: '#ef4444', fontWeight: '900', fontSize: '0.82rem' }}>
-                              -₹{Number(b.amount || 0).toFixed(2)}
-                            </span>
-                          </div>
+                          <span style={{ color: 'var(--danger-red)', fontWeight: '900', fontSize: '0.86rem' }}>
+                            -₹{Number(b.amount || 0).toFixed(2)}
+                          </span>
                         )}
 
                         {isPending && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{
-                              background: 'rgba(234, 179, 8, 0.2)',
-                              border: '1px solid #eab308',
-                              color: '#ffd700',
-                              padding: '1px 5px',
-                              borderRadius: '4px',
-                              fontSize: '0.62rem',
-                              fontWeight: '800'
-                            }}>
-                              WAIT
-                            </span>
-                            <span style={{ color: '#ffd700', fontWeight: '800', fontSize: '0.78rem' }}>
-                              ₹{Number(b.amount || 0).toFixed(2)}
-                            </span>
-                          </div>
+                          <span style={{ color: 'var(--accent-gold)', fontWeight: '800', fontSize: '0.78rem' }}>
+                            Pending
+                          </span>
                         )}
                       </div>
                     </div>
