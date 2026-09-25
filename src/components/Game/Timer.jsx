@@ -95,8 +95,8 @@ const Timer = () => {
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center', fontSize: '1.2rem', fontWeight: '800', color: countdown <= 5 ? 'var(--danger-red)' : '#fff' }}>
-            <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>0</div>
-            <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>0</div>
+            <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>{timeString[0]}</div>
+            <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>{timeString[1]}</div>
             <span style={{ margin: '0 2px' }}>:</span>
             <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>{timeString[3]}</div>
             <div style={{ background: '#2b2640', padding: '4px 8px', borderRadius: '6px' }}>{timeString[4]}</div>

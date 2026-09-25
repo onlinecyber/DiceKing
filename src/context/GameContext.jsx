@@ -252,230 +252,159 @@ export const GameProvider = ({ children }) => {
       }
     }, (error) => console.error("Settings snapshot error:", error));
 
-    // Listen to current active round
-    const activeRoundQuery = query(
+    // Helper to trigger win/loss modal for completed round
+    const triggerResultModal = (completedRound, is1mMode = false) => {
+      if (!currentUser) return;
+      const userRoundBetQuery = query(
+        collection(db, 'bets'),
+        where('uid', '==', currentUser.uid),
+        where('roundId', '==', completedRound.id)
+      );
+
+      onSnapshot(userRoundBetQuery, (betSnap) => {
+        if (betSnap.empty) return;
+
+        let wonAmount = 0;
+        let totalBetAmount = 0;
+        const userBets = [];
+
+        betSnap.forEach(bDoc => {
+          const b = bDoc.data();
+          totalBetAmount += (Number(b.amount) || 0);
+          if (b.status === 'won') {
+            wonAmount += (Number(b.payout) || 0);
+          }
+          userBets.push(b);
+        });
+
+        let date = new Date();
+        if (completedRound.createdAt) {
+          if (typeof completedRound.createdAt.toDate === 'function') {
+            date = completedRound.createdAt.toDate();
+          } else if (completedRound.createdAt.seconds) {
+            date = new Date(completedRound.createdAt.seconds * 1000);
+          } else {
+            date = new Date(completedRound.createdAt);
+          }
+        }
+        const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+        const dateStr = formatter.format(date).replace(/-/g, '');
+        const period = `${dateStr}000${completedRound.roundNumber}`;
+
+        const isWin = wonAmount > 0;
+        if (isWin) {
+          soundManager.playWin();
+          showToast(`🎉 You Won ₹${wonAmount.toFixed(2)} in ${is1mMode ? '1-Min ' : ''}Round #${completedRound.roundNumber}!`, 'success');
+        } else {
+          soundManager.playLoss();
+          showToast(`${is1mMode ? '1-Min ' : ''}Round #${completedRound.roundNumber} completed: Rolled ${completedRound.total}`, 'info');
+        }
+
+        setRoundResultModal({
+          type: isWin ? 'win' : 'loss',
+          period,
+          roundNumber: completedRound.roundNumber,
+          dice1: completedRound.dice1,
+          dice2: completedRound.dice2,
+          total: completedRound.total,
+          resultType: completedRound.resultType,
+          wonAmount,
+          totalBetAmount,
+          bets: userBets
+        });
+      }, { onlyOnce: true });
+    };
+
+    // Listen to active rounds across both 30s and 1m modes (all stored in 'gameRounds')
+    const activeRoundsQuery = query(
       collection(db, 'gameRounds'),
-      where('status', '==', 'active'),
-      orderBy('createdAt', 'desc'),
-      limit(1)
+      where('status', '==', 'active')
     );
 
-    const unsubscribeActiveRound = onSnapshot(activeRoundQuery, (snapshot) => {
-      if (!snapshot.empty) {
-        setActiveRound(snapshot.docs[0].data());
+    const unsubscribeActiveRounds = onSnapshot(activeRoundsQuery, (snapshot) => {
+      let found30s = null;
+      let found1m = null;
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.gameMode === '1m') {
+          found1m = data;
+        } else {
+          found30s = data;
+        }
+      });
+
+      if (found30s) {
+        setActiveRound(found30s);
       } else {
-        // No active round, bootstrap by settling/starting one
         triggerSettleRound();
       }
-    }, (error) => console.error("Active round snapshot error:", error));
 
-    // Listen to history of last 20 completed rounds
+      if (found1m) {
+        setActiveRound1m(found1m);
+      } else {
+        triggerSettleRound1m();
+      }
+    }, (error) => console.error("Active rounds snapshot error:", error));
+
+    // Listen to history of last 50 completed rounds across both modes
     const historyQuery = query(
       collection(db, 'gameRounds'),
       where('status', '==', 'completed'),
       orderBy('createdAt', 'desc'),
-      limit(20)
+      limit(50)
     );
 
     const unsubscribeHistory = onSnapshot(historyQuery, (snapshot) => {
-      const rounds = snapshot.docs.map(doc => doc.data());
-      setHistory(rounds);
+      const allRounds = snapshot.docs.map(doc => doc.data());
+      const rounds30s = allRounds.filter(r => r.gameMode !== '1m').slice(0, 20);
+      const rounds1m = allRounds.filter(r => r.gameMode === '1m').slice(0, 20);
 
-      // Handle roll animations for all users when a new completed round is recorded
-      if (rounds.length > 0) {
-        const latestCompleted = rounds[0];
+      setHistory(rounds30s);
+      setHistory1m(rounds1m);
+
+      // Handle roll animations for 30s
+      if (rounds30s.length > 0) {
+        const latestCompleted = rounds30s[0];
         if (prevCompletedRoundIdRef.current && prevCompletedRoundIdRef.current !== latestCompleted.id) {
-          // Play roll animation and audio sound
-          setRolling(true);
-          soundManager.playDiceRoll();
-          setRolledDice({
-            dice1: latestCompleted.dice1,
-            dice2: latestCompleted.dice2,
-            total: latestCompleted.total
-          });
-          
-          // Stop rolling and reveal outcome after 1.5s
-          setTimeout(() => {
-            setRolling(false);
-            
-            // Look up if user had placed bets in this round to display result modal
-            if (currentUser) {
-              const userRoundBetQuery = query(
-                collection(db, 'bets'),
-                where('uid', '==', currentUser.uid),
-                where('roundId', '==', latestCompleted.id)
-              );
-              
-              onSnapshot(userRoundBetQuery, (betSnap) => {
-                if (betSnap.empty) return;
-
-                let wonAmount = 0;
-                let totalBetAmount = 0;
-                const userBets = [];
-
-                betSnap.forEach(bDoc => {
-                  const b = bDoc.data();
-                  totalBetAmount += (Number(b.amount) || 0);
-                  if (b.status === 'won') {
-                    wonAmount += (Number(b.payout) || 0);
-                  }
-                  userBets.push(b);
-                });
-
-                // Format period string: YYYYMMDD000{roundNumber}
-                let date = new Date();
-                if (latestCompleted.createdAt) {
-                  if (typeof latestCompleted.createdAt.toDate === 'function') {
-                    date = latestCompleted.createdAt.toDate();
-                  } else if (latestCompleted.createdAt.seconds) {
-                    date = new Date(latestCompleted.createdAt.seconds * 1000);
-                  } else {
-                    date = new Date(latestCompleted.createdAt);
-                  }
-                }
-                const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
-                const dateStr = formatter.format(date).replace(/-/g, '');
-                const period = `${dateStr}000${latestCompleted.roundNumber}`;
-
-                const isWin = wonAmount > 0;
-                if (isWin) {
-                  soundManager.playWin();
-                  showToast(`🎉 You Won ₹${wonAmount.toFixed(2)} in Round #${latestCompleted.roundNumber}!`, 'success');
-                } else {
-                  soundManager.playLoss();
-                  showToast(`Round #${latestCompleted.roundNumber} completed: Rolled ${latestCompleted.total}`, 'info');
-                }
-
-                setRoundResultModal({
-                  type: isWin ? 'win' : 'loss',
-                  period,
-                  roundNumber: latestCompleted.roundNumber,
-                  dice1: latestCompleted.dice1,
-                  dice2: latestCompleted.dice2,
-                  total: latestCompleted.total,
-                  resultType: latestCompleted.resultType,
-                  wonAmount,
-                  totalBetAmount,
-                  bets: userBets
-                });
-              }, { onlyOnce: true });
-            }
-          }, 1500);
+          if (gameMode === '30s') {
+            setRolling(true);
+            soundManager.playDiceRoll();
+            setRolledDice({
+              dice1: latestCompleted.dice1,
+              dice2: latestCompleted.dice2,
+              total: latestCompleted.total
+            });
+            setTimeout(() => {
+              setRolling(false);
+              triggerResultModal(latestCompleted, false);
+            }, 1500);
+          }
         }
-        // Save ref of current completed round
         prevCompletedRoundIdRef.current = latestCompleted.id;
       }
-    }, (error) => console.error("History snapshot error:", error));
 
-    // Listen to current active round for 1-Minute Mode
-    const activeRound1mQuery = query(
-      collection(db, 'gameRounds_1m'),
-      where('status', '==', 'active'),
-      orderBy('createdAt', 'desc'),
-      limit(1)
-    );
-
-    const unsubscribeActiveRound1m = onSnapshot(activeRound1mQuery, (snapshot) => {
-      if (!snapshot.empty) {
-        setActiveRound1m(snapshot.docs[0].data());
-      } else {
-        triggerSettleRound1m();
-      }
-    }, (error) => console.error("Active round 1m snapshot error:", error));
-
-    // Listen to history of last 20 completed rounds for 1-Minute Mode
-    const history1mQuery = query(
-      collection(db, 'gameRounds_1m'),
-      where('status', '==', 'completed'),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
-
-    const unsubscribeHistory1m = onSnapshot(history1mQuery, (snapshot) => {
-      const rounds = snapshot.docs.map(doc => doc.data());
-      setHistory1m(rounds);
-
-      if (rounds.length > 0) {
-        const latestCompleted = rounds[0];
-        if (prevCompletedRoundId1mRef.current && prevCompletedRoundId1mRef.current !== latestCompleted.id) {
-          setRolling1m(true);
+      // Handle roll animations for 1m
+      if (rounds1m.length > 0) {
+        const latestCompleted1m = rounds1m[0];
+        if (prevCompletedRoundId1mRef.current && prevCompletedRoundId1mRef.current !== latestCompleted1m.id) {
           if (gameMode === '1m') {
+            setRolling1m(true);
             soundManager.playDiceRoll();
+            setRolledDice1m({
+              dice1: latestCompleted1m.dice1,
+              dice2: latestCompleted1m.dice2,
+              total: latestCompleted1m.total
+            });
+            setTimeout(() => {
+              setRolling1m(false);
+              triggerResultModal(latestCompleted1m, true);
+            }, 1500);
           }
-          setRolledDice1m({
-            dice1: latestCompleted.dice1,
-            dice2: latestCompleted.dice2,
-            total: latestCompleted.total
-          });
-
-          setTimeout(() => {
-            setRolling1m(false);
-
-            if (currentUser) {
-              const userRoundBetQuery = query(
-                collection(db, 'bets'),
-                where('uid', '==', currentUser.uid),
-                where('roundId', '==', latestCompleted.id)
-              );
-
-              onSnapshot(userRoundBetQuery, (betSnap) => {
-                if (betSnap.empty) return;
-
-                let wonAmount = 0;
-                let totalBetAmount = 0;
-                const userBets = [];
-
-                betSnap.forEach(bDoc => {
-                  const b = bDoc.data();
-                  totalBetAmount += (Number(b.amount) || 0);
-                  if (b.status === 'won') {
-                    wonAmount += (Number(b.payout) || 0);
-                  }
-                  userBets.push(b);
-                });
-
-                let date = new Date();
-                if (latestCompleted.createdAt) {
-                  if (typeof latestCompleted.createdAt.toDate === 'function') {
-                    date = latestCompleted.createdAt.toDate();
-                  } else if (latestCompleted.createdAt.seconds) {
-                    date = new Date(latestCompleted.createdAt.seconds * 1000);
-                  } else {
-                    date = new Date(latestCompleted.createdAt);
-                  }
-                }
-                const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
-                const dateStr = formatter.format(date).replace(/-/g, '');
-                const period = `${dateStr}000${latestCompleted.roundNumber}`;
-
-                const isWin = wonAmount > 0;
-                if (isWin) {
-                  soundManager.playWin();
-                  showToast(`🎉 You Won ₹${wonAmount.toFixed(2)} in 1-Min Round #${latestCompleted.roundNumber}!`, 'success');
-                } else {
-                  soundManager.playLoss();
-                  showToast(`1-Min Round #${latestCompleted.roundNumber} completed: Rolled ${latestCompleted.total}`, 'info');
-                }
-
-                setRoundResultModal({
-                  type: isWin ? 'win' : 'loss',
-                  period,
-                  roundNumber: latestCompleted.roundNumber,
-                  dice1: latestCompleted.dice1,
-                  dice2: latestCompleted.dice2,
-                  total: latestCompleted.total,
-                  resultType: latestCompleted.resultType,
-                  wonAmount,
-                  totalBetAmount,
-                  bets: userBets
-                });
-              }, { onlyOnce: true });
-            }
-          }, 1500);
         }
-        prevCompletedRoundId1mRef.current = latestCompleted.id;
+        prevCompletedRoundId1mRef.current = latestCompleted1m.id;
       }
-    }, (error) => console.error("History 1m snapshot error:", error));
+    }, (error) => console.error("History snapshot error:", error));
 
     // Listen to leaderboard
     const leaderboardQuery = query(
@@ -489,10 +418,8 @@ export const GameProvider = ({ children }) => {
     }, (error) => console.error("Leaderboard snapshot error:", error));
 
     return () => {
-      unsubscribeActiveRound();
+      unsubscribeActiveRounds();
       unsubscribeHistory();
-      unsubscribeActiveRound1m();
-      unsubscribeHistory1m();
       unsubscribeLeaderboard();
       unsubscribeSettings();
     };
