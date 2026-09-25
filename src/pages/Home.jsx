@@ -9,6 +9,7 @@ import HistoryList from '../components/Game/HistoryList';
 import Navbar from '../components/Common/Navbar';
 import BottomNav from '../components/Common/BottomNav';
 import GlassCard from '../components/Common/GlassCard';
+import ResultModal from '../components/Game/ResultModal';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -238,6 +239,9 @@ const Home = () => {
           </div>
         </div>
       )}
+
+      {/* Win & Loss Round Result Modal */}
+      <ResultModal />
 
       {/* Floating System Toast Alerts */}
       {toast && (

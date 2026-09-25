@@ -129,6 +129,33 @@ class SoundManager {
     osc.start(now);
     osc.stop(now + 0.05);
   }
+
+  // Play loss tone
+  playLoss() {
+    if (this.muted) return;
+    this.initContext();
+    if (!this.audioCtx) return;
+
+    const notes = [349.23, 311.13, 261.63]; // F4, Eb4, C4
+    const now = this.audioCtx.currentTime;
+
+    notes.forEach((freq, idx) => {
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.14);
+
+      gain.gain.setValueAtTime(0.2, now + idx * 0.14);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.14 + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+
+      osc.start(now + idx * 0.14);
+      osc.stop(now + idx * 0.14 + 0.4);
+    });
+  }
 }
 
 export const soundManager = new SoundManager();

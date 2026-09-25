@@ -35,6 +35,9 @@ export const GameProvider = ({ children }) => {
   const [rolledDice, setRolledDice] = useState({ dice1: 1, dice2: 1, total: 2 });
   const [toast, setToast] = useState(null);
   const [settling, setSettling] = useState(false);
+  const [roundResultModal, setRoundResultModal] = useState(null);
+
+  const closeResultModal = () => setRoundResultModal(null);
 
   // Safety watchdog: ensure rolling state never freezes
   useEffect(() => {
@@ -245,7 +248,7 @@ export const GameProvider = ({ children }) => {
           setTimeout(() => {
             setRolling(false);
             
-            // Look up if user had a winning bet in this round to display win alert
+            // Look up if user had placed bets in this round to display result modal
             if (currentUser) {
               const userRoundBetQuery = query(
                 collection(db, 'bets'),
@@ -254,17 +257,57 @@ export const GameProvider = ({ children }) => {
               );
               
               onSnapshot(userRoundBetQuery, (betSnap) => {
+                if (betSnap.empty) return;
+
                 let wonAmount = 0;
+                let totalBetAmount = 0;
+                const userBets = [];
+
                 betSnap.forEach(bDoc => {
                   const b = bDoc.data();
-                  if (b.status === 'won') wonAmount += b.payout;
+                  totalBetAmount += (Number(b.amount) || 0);
+                  if (b.status === 'won') {
+                    wonAmount += (Number(b.payout) || 0);
+                  }
+                  userBets.push(b);
                 });
-                if (wonAmount > 0) {
+
+                // Format period string: YYYYMMDD000{roundNumber}
+                let date = new Date();
+                if (latestCompleted.createdAt) {
+                  if (typeof latestCompleted.createdAt.toDate === 'function') {
+                    date = latestCompleted.createdAt.toDate();
+                  } else if (latestCompleted.createdAt.seconds) {
+                    date = new Date(latestCompleted.createdAt.seconds * 1000);
+                  } else {
+                    date = new Date(latestCompleted.createdAt);
+                  }
+                }
+                const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+                const dateStr = formatter.format(date).replace(/-/g, '');
+                const period = `${dateStr}000${latestCompleted.roundNumber}`;
+
+                const isWin = wonAmount > 0;
+                if (isWin) {
                   soundManager.playWin();
                   showToast(`🎉 You Won ₹${wonAmount.toFixed(2)} in Round #${latestCompleted.roundNumber}!`, 'success');
-                } else if (!betSnap.empty) {
+                } else {
+                  soundManager.playLoss();
                   showToast(`Round #${latestCompleted.roundNumber} completed: Rolled ${latestCompleted.total}`, 'info');
                 }
+
+                setRoundResultModal({
+                  type: isWin ? 'win' : 'loss',
+                  period,
+                  roundNumber: latestCompleted.roundNumber,
+                  dice1: latestCompleted.dice1,
+                  dice2: latestCompleted.dice2,
+                  total: latestCompleted.total,
+                  resultType: latestCompleted.resultType,
+                  wonAmount,
+                  totalBetAmount,
+                  bets: userBets
+                });
               }, { onlyOnce: true });
             }
           }, 1500);
@@ -413,6 +456,8 @@ export const GameProvider = ({ children }) => {
     rolledDice,
     settling,
     toast,
+    roundResultModal,
+    closeResultModal,
     appSettings,
     placeBet,
     requestDeposit,
