@@ -7,13 +7,15 @@ import GlassCard from '../Common/GlassCard';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const HistoryList = () => {
-  const { history } = useGame();
+  const { history, gameMode } = useGame();
   const { currentUser } = useAuth();
   
   const [activeTab, setActiveTab] = useState('game'); // 'game' | 'my'
   const [myBets, setMyBets] = useState([]);
   const [loadingBets, setLoadingBets] = useState(false);
   const [expandedBetId, setExpandedBetId] = useState(null);
+
+  const displayedBets = myBets.filter((b) => (b.gameMode || '30s') === (gameMode || '30s'));
 
   // Helper to format date to YYYYMMDD000{roundNumber}
   const formatPeriod = (timestamp, roundNumber) => {
@@ -307,9 +309,9 @@ const HistoryList = () => {
             <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
               Loading your history...
             </div>
-          ) : myBets.length === 0 ? (
+          ) : displayedBets.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              No bets placed yet. Bet on Up, Down or 7 to start winning!
+              No bets placed yet in this mode. Bet on Up, Down or 7 to start winning!
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -327,7 +329,7 @@ const HistoryList = () => {
                 <span style={{ textAlign: 'right' }}>RESULT</span>
               </div>
 
-              {myBets.map((b) => {
+              {displayedBets.map((b) => {
                 const isWon = b.status === 'won';
                 const isLost = b.status === 'lost';
                 const isPending = b.status === 'pending';

@@ -22,30 +22,48 @@ export const useGame = () => useContext(GameContext);
 export const GameProvider = ({ children }) => {
   const { currentUser } = useAuth();
   
-  // Game States
+  // Game Mode: '30s' or '1m'
+  const [gameMode, setGameMode] = useState('30s');
+
+  // 30s Game States
   const [activeRound, setActiveRound] = useState(null);
   const [history, setHistory] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [wallet, setWallet] = useState(null);
-  const [recentBets, setRecentBets] = useState([]);
-  
-  // UI States
   const [countdown, setCountdown] = useState(30);
   const [rolling, setRolling] = useState(false);
   const [rolledDice, setRolledDice] = useState({ dice1: 1, dice2: 1, total: 2 });
-  const [toast, setToast] = useState(null);
   const [settling, setSettling] = useState(false);
+
+  // 1-Minute Game States
+  const [activeRound1m, setActiveRound1m] = useState(null);
+  const [history1m, setHistory1m] = useState([]);
+  const [countdown1m, setCountdown1m] = useState(60);
+  const [rolling1m, setRolling1m] = useState(false);
+  const [rolledDice1m, setRolledDice1m] = useState({ dice1: 1, dice2: 1, total: 2 });
+  const [settling1m, setSettling1m] = useState(false);
+
+  // Shared States
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [wallet, setWallet] = useState(null);
+  const [recentBets, setRecentBets] = useState([]);
+  const [toast, setToast] = useState(null);
   const [roundResultModal, setRoundResultModal] = useState(null);
 
   const closeResultModal = () => setRoundResultModal(null);
 
-  // Safety watchdog: ensure rolling state never freezes
+  // Safety watchdogs: ensure rolling state never freezes
   useEffect(() => {
     if (rolling) {
       const timer = setTimeout(() => setRolling(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [rolling]);
+
+  useEffect(() => {
+    if (rolling1m) {
+      const timer = setTimeout(() => setRolling1m(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [rolling1m]);
 
   // App Settings state with default Indian settings values
   const [appSettings, setAppSettings] = useState({
@@ -59,8 +77,11 @@ export const GameProvider = ({ children }) => {
 
   // References to track changes
   const prevCompletedRoundIdRef = useRef(null);
+  const prevCompletedRoundId1mRef = useRef(null);
   const triggerInProgress = useRef(false);
+  const triggerInProgress1m = useRef(false);
   const nextAllowedSettleTimeRef = useRef(0);
+  const nextAllowedSettleTime1mRef = useRef(0);
   const serverTimeOffsetRef = useRef(0);
 
   // Initial server wake-up & clock sync
@@ -84,12 +105,14 @@ export const GameProvider = ({ children }) => {
   // 1. Standalone Backend API Calls Bindings
   const placeBetFn = (data) => callApi('placeBet', data);
   const settleRoundFn = (data) => callApi('settleRoundAndStartNew', data);
+  const settleRound1mFn = (data) => callApi('settleRound1m', data);
   const submitDepositFn = (data) => callApi('submitDepositRequest', data);
   const submitWithdrawalFn = (data) => callApi('submitWithdrawalRequest', data);
 
   // Place Bet wrapper (Instant Optimistic Feedback)
   const placeBet = async (type, exactValue, amount) => {
-    if (!activeRound) throw new Error("No active round available.");
+    const currentActive = gameMode === '1m' ? activeRound1m : activeRound;
+    if (!currentActive) throw new Error("No active round available.");
 
     // Instant local wallet balance deduction
     const prevBalance = wallet?.balance;
@@ -99,13 +122,14 @@ export const GameProvider = ({ children }) => {
 
     try {
       const result = await placeBetFn({
-        roundId: activeRound.id,
+        roundId: currentActive.id,
         type,
         exactValue: type === 'exact' ? Number(exactValue) : null,
         amount: Number(amount),
-        displayName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Player'
+        displayName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Player',
+        gameMode
       });
-      showToast(`Bet of ₹${amount} placed successfully!`, 'success');
+      showToast(`Bet of ₹${amount} placed on ${gameMode === '1m' ? '1-Min' : '30s'} successfully!`, 'success');
       return result.data;
     } catch (error) {
       // Revert optimistic balance if failed
@@ -117,16 +141,13 @@ export const GameProvider = ({ children }) => {
     }
   };
 
-  // Settle Round trigger
+  // Settle Round trigger (30s)
   const triggerSettleRound = async () => {
     if (triggerInProgress.current) return;
     if (Date.now() < nextAllowedSettleTimeRef.current) return;
 
     triggerInProgress.current = true;
     setSettling(true);
-    // NOTE: We do NOT set rolling=true here!
-    // The rolling dice animation is exclusively triggered when the new completed round
-    // with actual dice numbers is received via Firestore onSnapshot.
 
     const safetyTimer = setTimeout(() => {
       triggerInProgress.current = false;
@@ -134,30 +155,59 @@ export const GameProvider = ({ children }) => {
     }, 6000);
 
     try {
-      console.log("Triggering round settlement...");
       const result = await settleRoundFn();
-      console.log("Round settlement result:", result?.data);
-
       if (result?.data?.serverTime) {
         serverTimeOffsetRef.current = result.data.serverTime - Date.now();
       }
 
       if (result?.data?.success) {
-        // Successfully settled, allow 2s for Firestore snapshot propagation
         nextAllowedSettleTimeRef.current = Date.now() + 2000;
       } else {
-        // Server rejected or settlement already in progress, backoff cleanly
         const waitMs = result?.data?.remainingMs ? Math.max(2000, result.data.remainingMs) : 3500;
         nextAllowedSettleTimeRef.current = Date.now() + waitMs;
       }
     } catch (error) {
       console.error("Error triggering round settlement:", error);
-      // Wait 5 seconds before retrying on error (prevents spamming while backend spins up)
       nextAllowedSettleTimeRef.current = Date.now() + 5000;
     } finally {
       clearTimeout(safetyTimer);
       triggerInProgress.current = false;
       setSettling(false);
+    }
+  };
+
+  // Settle Round trigger (1m)
+  const triggerSettleRound1m = async () => {
+    if (triggerInProgress1m.current) return;
+    if (Date.now() < nextAllowedSettleTime1mRef.current) return;
+
+    triggerInProgress1m.current = true;
+    setSettling1m(true);
+
+    const safetyTimer = setTimeout(() => {
+      triggerInProgress1m.current = false;
+      setSettling1m(false);
+    }, 6000);
+
+    try {
+      const result = await settleRound1mFn();
+      if (result?.data?.serverTime) {
+        serverTimeOffsetRef.current = result.data.serverTime - Date.now();
+      }
+
+      if (result?.data?.success) {
+        nextAllowedSettleTime1mRef.current = Date.now() + 2000;
+      } else {
+        const waitMs = result?.data?.remainingMs ? Math.max(2000, result.data.remainingMs) : 3500;
+        nextAllowedSettleTime1mRef.current = Date.now() + waitMs;
+      }
+    } catch (error) {
+      console.error("Error triggering 1m round settlement:", error);
+      nextAllowedSettleTime1mRef.current = Date.now() + 5000;
+    } finally {
+      clearTimeout(safetyTimer);
+      triggerInProgress1m.current = false;
+      setSettling1m(false);
     }
   };
 
@@ -317,6 +367,116 @@ export const GameProvider = ({ children }) => {
       }
     }, (error) => console.error("History snapshot error:", error));
 
+    // Listen to current active round for 1-Minute Mode
+    const activeRound1mQuery = query(
+      collection(db, 'gameRounds_1m'),
+      where('status', '==', 'active'),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    );
+
+    const unsubscribeActiveRound1m = onSnapshot(activeRound1mQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        setActiveRound1m(snapshot.docs[0].data());
+      } else {
+        triggerSettleRound1m();
+      }
+    }, (error) => console.error("Active round 1m snapshot error:", error));
+
+    // Listen to history of last 20 completed rounds for 1-Minute Mode
+    const history1mQuery = query(
+      collection(db, 'gameRounds_1m'),
+      where('status', '==', 'completed'),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+
+    const unsubscribeHistory1m = onSnapshot(history1mQuery, (snapshot) => {
+      const rounds = snapshot.docs.map(doc => doc.data());
+      setHistory1m(rounds);
+
+      if (rounds.length > 0) {
+        const latestCompleted = rounds[0];
+        if (prevCompletedRoundId1mRef.current && prevCompletedRoundId1mRef.current !== latestCompleted.id) {
+          setRolling1m(true);
+          if (gameMode === '1m') {
+            soundManager.playDiceRoll();
+          }
+          setRolledDice1m({
+            dice1: latestCompleted.dice1,
+            dice2: latestCompleted.dice2,
+            total: latestCompleted.total
+          });
+
+          setTimeout(() => {
+            setRolling1m(false);
+
+            if (currentUser) {
+              const userRoundBetQuery = query(
+                collection(db, 'bets'),
+                where('uid', '==', currentUser.uid),
+                where('roundId', '==', latestCompleted.id)
+              );
+
+              onSnapshot(userRoundBetQuery, (betSnap) => {
+                if (betSnap.empty) return;
+
+                let wonAmount = 0;
+                let totalBetAmount = 0;
+                const userBets = [];
+
+                betSnap.forEach(bDoc => {
+                  const b = bDoc.data();
+                  totalBetAmount += (Number(b.amount) || 0);
+                  if (b.status === 'won') {
+                    wonAmount += (Number(b.payout) || 0);
+                  }
+                  userBets.push(b);
+                });
+
+                let date = new Date();
+                if (latestCompleted.createdAt) {
+                  if (typeof latestCompleted.createdAt.toDate === 'function') {
+                    date = latestCompleted.createdAt.toDate();
+                  } else if (latestCompleted.createdAt.seconds) {
+                    date = new Date(latestCompleted.createdAt.seconds * 1000);
+                  } else {
+                    date = new Date(latestCompleted.createdAt);
+                  }
+                }
+                const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+                const dateStr = formatter.format(date).replace(/-/g, '');
+                const period = `${dateStr}000${latestCompleted.roundNumber}`;
+
+                const isWin = wonAmount > 0;
+                if (isWin) {
+                  soundManager.playWin();
+                  showToast(`🎉 You Won ₹${wonAmount.toFixed(2)} in 1-Min Round #${latestCompleted.roundNumber}!`, 'success');
+                } else {
+                  soundManager.playLoss();
+                  showToast(`1-Min Round #${latestCompleted.roundNumber} completed: Rolled ${latestCompleted.total}`, 'info');
+                }
+
+                setRoundResultModal({
+                  type: isWin ? 'win' : 'loss',
+                  period,
+                  roundNumber: latestCompleted.roundNumber,
+                  dice1: latestCompleted.dice1,
+                  dice2: latestCompleted.dice2,
+                  total: latestCompleted.total,
+                  resultType: latestCompleted.resultType,
+                  wonAmount,
+                  totalBetAmount,
+                  bets: userBets
+                });
+              }, { onlyOnce: true });
+            }
+          }, 1500);
+        }
+        prevCompletedRoundId1mRef.current = latestCompleted.id;
+      }
+    }, (error) => console.error("History 1m snapshot error:", error));
+
     // Listen to leaderboard
     const leaderboardQuery = query(
       collection(db, 'leaderboard'),
@@ -331,10 +491,12 @@ export const GameProvider = ({ children }) => {
     return () => {
       unsubscribeActiveRound();
       unsubscribeHistory();
+      unsubscribeActiveRound1m();
+      unsubscribeHistory1m();
       unsubscribeLeaderboard();
       unsubscribeSettings();
     };
-  }, [currentUser]);
+  }, [currentUser, gameMode]);
 
   // 3. User Wallet & Active Bets Real-time Listeners
   useEffect(() => {
@@ -408,7 +570,32 @@ export const GameProvider = ({ children }) => {
     const intervalId = setInterval(tick, 1000);
 
     return () => clearInterval(intervalId);
-  }, [activeRound, settling, rolling]);
+  }, [activeRound, settling, rolling, gameMode]);
+
+  // 1-Minute Timer ticking interval
+  useEffect(() => {
+    if (!activeRound1m || !activeRound1m.endTime) return;
+
+    const tick1m = () => {
+      const now = Date.now() + serverTimeOffsetRef.current;
+      const endTime = getMillis(activeRound1m.endTime);
+      const deltaSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
+      
+      setCountdown1m(deltaSeconds);
+
+      if (gameMode === '1m' && deltaSeconds > 0 && deltaSeconds <= 5 && !rolling1m) {
+        soundManager.playTick();
+      }
+
+      if (deltaSeconds <= 0 && activeRound1m.status === 'active' && !settling1m && !triggerInProgress1m.current && Date.now() >= nextAllowedSettleTime1mRef.current) {
+        triggerSettleRound1m();
+      }
+    };
+
+    tick1m();
+    const intervalId = setInterval(tick1m, 1000);
+    return () => clearInterval(intervalId);
+  }, [activeRound1m, settling1m, rolling1m, gameMode]);
 
   // Admin Settings update helper
   const saveAppSettings = async (newSettings) => {
@@ -445,16 +632,33 @@ export const GameProvider = ({ children }) => {
     }
   };
 
+  // Mapped active objects depending on current gameMode ('30s' vs '1m')
+  const currentActiveRound = gameMode === '1m' ? activeRound1m : activeRound;
+  const currentCountdown = gameMode === '1m' ? countdown1m : countdown;
+  const currentRolling = gameMode === '1m' ? rolling1m : rolling;
+  const currentRolledDice = gameMode === '1m' ? rolledDice1m : rolledDice;
+  const currentHistory = gameMode === '1m' ? history1m : history;
+
   const value = {
-    activeRound,
-    history,
+    gameMode,
+    setGameMode,
+    activeRound: currentActiveRound,
+    history: currentHistory,
+    countdown: currentCountdown,
+    rolling: currentRolling,
+    rolledDice: currentRolledDice,
+    settling: gameMode === '1m' ? settling1m : settling,
+    // Explicit raw mode data
+    activeRound30s: activeRound,
+    activeRound1m,
+    history30s: history,
+    history1m,
+    countdown30s: countdown,
+    countdown1m,
+    // Shared user & app state
     leaderboard,
     wallet,
     recentBets,
-    countdown,
-    rolling,
-    rolledDice,
-    settling,
     toast,
     roundResultModal,
     closeResultModal,
@@ -462,7 +666,7 @@ export const GameProvider = ({ children }) => {
     placeBet,
     requestDeposit,
     requestWithdrawal,
-    triggerSettleRound,
+    triggerSettleRound: gameMode === '1m' ? triggerSettleRound1m : triggerSettleRound,
     showToast,
     saveAppSettings,
     submitSupportTicket

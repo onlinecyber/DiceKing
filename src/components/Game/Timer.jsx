@@ -3,12 +3,14 @@ import { useGame } from '../../context/GameContext';
 import GlassCard from '../Common/GlassCard';
 
 const Timer = () => {
-  const { countdown, settling, rolling, history, activeRound } = useGame();
+  const { countdown, settling, rolling, history, activeRound, gameMode } = useGame();
   const audioCtxRef = useRef(null);
   const lastBeepRef = useRef(null);
   
   const secs = countdown < 0 ? 0 : countdown;
-  const timeString = `00:${secs.toString().padStart(2, '0')}`;
+  const mins = Math.floor(secs / 60);
+  const remSecs = secs % 60;
+  const timeString = `${mins.toString().padStart(2, '0')}:${remSecs.toString().padStart(2, '0')}`;
   
   const recentRounds = (history || []).slice(0, 5);
 
@@ -50,8 +52,8 @@ const Timer = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
           <span style={{ fontSize: '0.9rem' }}>📜</span> How to play
         </div>
-        <div style={{ fontSize: '0.8rem', color: '#fff', fontWeight: '600', margin: '4px 0' }}>
-          WinGo 30sec
+        <div style={{ fontSize: '0.8rem', color: '#fff', fontWeight: '700', margin: '4px 0' }}>
+          {gameMode === '1m' ? '🎲 Dice King 1 Min' : '🎲 Dice King 30sec'}
         </div>
         <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
           {recentRounds.map((r, idx) => {

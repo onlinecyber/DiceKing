@@ -186,7 +186,7 @@ const onUserCreated = async (data, context) => {
 
 const placeBet = async (data, context) => {
   const uid = context.auth.uid;
-  const { roundId, type, exactValue, amount } = data;
+  const { roundId, type, exactValue, amount, gameMode = '30s' } = data;
 
   if (!roundId || !type || typeof amount !== 'number' || amount <= 0) {
     throw new HttpsError('invalid-argument', 'Invalid bet parameters.');
@@ -201,7 +201,8 @@ const placeBet = async (data, context) => {
     throw new HttpsError('invalid-argument', 'Exact number betting requires a value from 2 to 12.');
   }
 
-  const roundRef = db.collection('gameRounds').doc(roundId);
+  const collectionName = gameMode === '1m' ? 'gameRounds_1m' : 'gameRounds';
+  const roundRef = db.collection(collectionName).doc(roundId);
   const walletRef = db.collection('wallets').doc(uid);
   const betRef = db.collection('bets').doc();
 
@@ -251,6 +252,7 @@ const placeBet = async (data, context) => {
       id: betRef.id,
       uid,
       displayName,
+      gameMode,
       roundId,
       roundNumber: round.roundNumber,
       amount,
@@ -265,32 +267,39 @@ const placeBet = async (data, context) => {
   });
 };
 
-let settlementLock = false;
+let settlementLock30s = false;
+let settlementLock1m = false;
 
-const settleRoundAndStartNew = async (data, context) => {
-  console.log("settleRoundAndStartNew called.");
-  if (settlementLock) {
-    console.log("Settlement already in progress, skipping.");
+const settleGameRound = async (mode = '30s') => {
+  const is1m = mode === '1m';
+  const collectionName = is1m ? 'gameRounds_1m' : 'gameRounds';
+  const roundDurationMs = is1m ? 60000 : 30000;
+
+  if (is1m ? settlementLock1m : settlementLock30s) {
+    console.log(`[${mode}] Settlement already in progress, skipping.`);
     return { success: false, message: 'Settlement already in progress.', serverTime: Date.now() };
   }
 
-  settlementLock = true;
+  if (is1m) settlementLock1m = true;
+  else settlementLock30s = true;
+
   try {
-    const activeRoundsQuery = db.collection('gameRounds').where('status', '==', 'active').limit(1);
+    const activeRoundsQuery = db.collection(collectionName).where('status', '==', 'active').limit(1);
 
     const result = await db.runTransaction(async (transaction) => {
       const activeRoundsSnap = await transaction.get(activeRoundsQuery);
       const now = Timestamp.now();
 
       if (activeRoundsSnap.empty) {
-        console.log("No active round found. Bootstrapping initial round.");
+        console.log(`[${mode}] No active round found. Bootstrapping initial round.`);
         const nextRoundNumber = 1;
-        const endTime = Timestamp.fromMillis(now.toMillis() + 30000);
-        const newRoundRef = db.collection('gameRounds').doc();
+        const endTime = Timestamp.fromMillis(now.toMillis() + roundDurationMs);
+        const newRoundRef = db.collection(collectionName).doc();
         
         transaction.set(newRoundRef, {
           id: newRoundRef.id,
           roundNumber: nextRoundNumber,
+          gameMode: mode,
           status: 'active',
           startTime: now,
           endTime: endTime,
@@ -300,12 +309,12 @@ const settleRoundAndStartNew = async (data, context) => {
           resultType: null,
           createdAt: now
         });
-        return { success: true, message: 'Created initial active round.' };
+        return { success: true, message: `Created initial active round for ${mode}.` };
       }
 
       const activeRoundDoc = activeRoundsSnap.docs[0];
       const activeRound = activeRoundDoc.data();
-      console.log(`Active round found: #${activeRound.roundNumber}, ID: ${activeRound.id}, EndTime: ${activeRound.endTime.toMillis()}, Now: ${now.toMillis()}`);
+      console.log(`[${mode}] Active round found: #${activeRound.roundNumber}, ID: ${activeRound.id}, EndTime: ${activeRound.endTime.toMillis()}, Now: ${now.toMillis()}`);
 
       if (now.toMillis() + 1500 < activeRound.endTime.toMillis()) {
         const remainingMs = activeRound.endTime.toMillis() - now.toMillis();
@@ -509,11 +518,12 @@ const settleRoundAndStartNew = async (data, context) => {
         }
       });
 
-      const newRoundRef = db.collection('gameRounds').doc();
-      const newEndTime = Timestamp.fromMillis(now.toMillis() + 30000);
+      const newRoundRef = db.collection(collectionName).doc();
+      const newEndTime = Timestamp.fromMillis(now.toMillis() + roundDurationMs);
       transaction.set(newRoundRef, {
         id: newRoundRef.id,
         roundNumber: activeRound.roundNumber + 1,
+        gameMode: mode,
         status: 'active',
         startTime: now,
         endTime: newEndTime,
@@ -534,11 +544,21 @@ const settleRoundAndStartNew = async (data, context) => {
     });
     return result;
   } catch (error) {
-    console.error("Error in settleRoundAndStartNew transaction:", error);
+    console.error(`Error in settleGameRound (${mode}) transaction:`, error);
     throw error;
   } finally {
-    settlementLock = false;
+    if (is1m) settlementLock1m = false;
+    else settlementLock30s = false;
   }
+};
+
+const settleRoundAndStartNew = async (data, context) => {
+  const mode = data?.gameMode === '1m' ? '1m' : '30s';
+  return settleGameRound(mode);
+};
+
+const settleRoundAndStartNew_1m = async (data, context) => {
+  return settleGameRound('1m');
 };
 
 const submitDepositRequest = async (data, context) => {
@@ -1020,6 +1040,7 @@ const applyReferralCode = async (data, context) => {
 app.post('/api/onUserCreated', decodeToken, requireAuth, handleRequest(onUserCreated));
 app.post('/api/placeBet', decodeToken, requireAuth, handleRequest(placeBet));
 app.post('/api/settleRoundAndStartNew', decodeToken, handleRequest(settleRoundAndStartNew));
+app.post('/api/settleRound1m', decodeToken, handleRequest(settleRoundAndStartNew_1m));
 app.post('/api/submitDepositRequest', decodeToken, requireAuth, handleRequest(submitDepositRequest));
 app.post('/api/submitWithdrawalRequest', decodeToken, requireAuth, handleRequest(submitWithdrawalRequest));
 app.post('/api/adminApproveDeposit', decodeToken, requireAuth, handleRequest(adminApproveDeposit));
@@ -1083,31 +1104,59 @@ if (!process.env.VERCEL) {
     console.log(`DiceKing Express Backend running on port ${PORT}`);
   });
 
-  // Background Autonomous Game Loop: runs every 1 second to ensure 24/7 seamless round transitions
-  let gameLoopActive = false;
-  setInterval(async () => {
-    if (gameLoopActive || settlementLock) return;
-    try {
-      const activeRoundsQuery = db.collection('gameRounds').where('status', '==', 'active').limit(1);
-      const activeRoundsSnap = await activeRoundsQuery.get();
-      const now = Timestamp.now();
+  // Background Autonomous Game Loops: runs every 1 second to ensure 24/7 seamless round transitions
+  let gameLoopActive30s = false;
+  let gameLoopActive1m = false;
 
-      if (activeRoundsSnap.empty) {
-        console.log("[AutonomousGameLoop] No active round found. Auto-bootstrapping initial round...");
-        gameLoopActive = true;
-        await settleRoundAndStartNew({}, { auth: null });
-      } else {
-        const activeRound = activeRoundsSnap.docs[0].data();
-        if (activeRound.endTime && now.toMillis() >= activeRound.endTime.toMillis()) {
-          console.log(`[AutonomousGameLoop] Round #${activeRound.roundNumber} expired. Auto-settling...`);
-          gameLoopActive = true;
-          await settleRoundAndStartNew({}, { auth: null });
+  setInterval(async () => {
+    // 1. 30 Seconds Mode Loop
+    if (!gameLoopActive30s && !settlementLock30s) {
+      try {
+        const activeSnap = await db.collection('gameRounds').where('status', '==', 'active').limit(1).get();
+        const now = Timestamp.now();
+
+        if (activeSnap.empty) {
+          console.log("[AutonomousGameLoop 30s] No active round found. Bootstrapping...");
+          gameLoopActive30s = true;
+          await settleGameRound('30s');
+        } else {
+          const activeRound = activeSnap.docs[0].data();
+          if (activeRound.endTime && now.toMillis() >= activeRound.endTime.toMillis()) {
+            console.log(`[AutonomousGameLoop 30s] Round #${activeRound.roundNumber} expired. Settling...`);
+            gameLoopActive30s = true;
+            await settleGameRound('30s');
+          }
         }
+      } catch (err) {
+        console.error("[AutonomousGameLoop 30s] Loop error:", err.message);
+      } finally {
+        gameLoopActive30s = false;
       }
-    } catch (err) {
-      console.error("[AutonomousGameLoop] Loop error:", err.message);
-    } finally {
-      gameLoopActive = false;
+    }
+
+    // 2. 1 Minute (60 Seconds) Mode Loop
+    if (!gameLoopActive1m && !settlementLock1m) {
+      try {
+        const activeSnap1m = await db.collection('gameRounds_1m').where('status', '==', 'active').limit(1).get();
+        const now = Timestamp.now();
+
+        if (activeSnap1m.empty) {
+          console.log("[AutonomousGameLoop 1m] No active round found. Bootstrapping...");
+          gameLoopActive1m = true;
+          await settleGameRound('1m');
+        } else {
+          const activeRound1m = activeSnap1m.docs[0].data();
+          if (activeRound1m.endTime && now.toMillis() >= activeRound1m.endTime.toMillis()) {
+            console.log(`[AutonomousGameLoop 1m] Round #${activeRound1m.roundNumber} expired. Settling...`);
+            gameLoopActive1m = true;
+            await settleGameRound('1m');
+          }
+        }
+      } catch (err) {
+        console.error("[AutonomousGameLoop 1m] Loop error:", err.message);
+      } finally {
+        gameLoopActive1m = false;
+      }
     }
   }, 1000);
 

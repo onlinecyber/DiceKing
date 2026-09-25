@@ -56,7 +56,7 @@ exports.placeBet = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to place a bet.');
   }
   const uid = context.auth.uid;
-  const { roundId, type, exactValue, amount } = data;
+  const { roundId, type, exactValue, amount, gameMode = '30s' } = data;
 
   if (!roundId || !type || typeof amount !== 'number' || amount <= 0) {
     throw new functions.https.HttpsError('invalid-argument', 'Invalid bet parameters.');
@@ -71,7 +71,8 @@ exports.placeBet = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('invalid-argument', 'Exact number betting requires a value from 2 to 12.');
   }
 
-  const roundRef = db.collection('gameRounds').doc(roundId);
+  const roundCollectionName = gameMode === '1m' ? 'gameRounds_1m' : 'gameRounds';
+  const roundRef = db.collection(roundCollectionName).doc(roundId);
   const walletRef = db.collection('wallets').doc(uid);
   const betRef = db.collection('bets').doc();
 
@@ -126,6 +127,7 @@ exports.placeBet = functions.https.onCall(async (data, context) => {
       id: betRef.id,
       uid,
       displayName,
+      gameMode,
       roundId,
       roundNumber: round.roundNumber,
       amount,
@@ -141,28 +143,31 @@ exports.placeBet = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * Callable: settleRoundAndStartNew
- * Transactional serverless loop. Settles bets of the expired active round, rolls dice, 
- * adjusts wallets, updates leaderboard, and creates the next active round.
+ * Generic settlement logic supporting both 30s and 1m modes.
  */
-exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) => {
-  console.log("settleRoundAndStartNew called.");
-  const activeRoundsQuery = db.collection('gameRounds').where('status', '==', 'active').limit(1);
+const settleGameRoundLogic = async (mode = '30s') => {
+  const is1m = mode === '1m';
+  const collectionName = is1m ? 'gameRounds_1m' : 'gameRounds';
+  const roundDurationMs = is1m ? 60000 : 30000;
+
+  console.log(`[${mode}] settleGameRoundLogic called.`);
+  const activeRoundsQuery = db.collection(collectionName).where('status', '==', 'active').limit(1);
 
   return db.runTransaction(async (transaction) => {
     const activeRoundsSnap = await transaction.get(activeRoundsQuery);
     const now = Timestamp.now();
 
     if (activeRoundsSnap.empty) {
-      console.log("No active round found. Bootstrapping initial round.");
+      console.log(`[${mode}] No active round found. Bootstrapping initial round.`);
       // Create initial round if none exists (bootstrapping)
       const nextRoundNumber = 1;
-      const endTime = Timestamp.fromMillis(now.toMillis() + 30000);
-      const newRoundRef = db.collection('gameRounds').doc();
+      const endTime = Timestamp.fromMillis(now.toMillis() + roundDurationMs);
+      const newRoundRef = db.collection(collectionName).doc();
       
       transaction.set(newRoundRef, {
         id: newRoundRef.id,
         roundNumber: nextRoundNumber,
+        gameMode: mode,
         status: 'active',
         startTime: now,
         endTime: endTime,
@@ -172,7 +177,7 @@ exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) =>
         resultType: null,
         createdAt: now
       });
-      return { success: true, message: 'Created initial active round.' };
+      return { success: true, message: `Created initial active round for ${mode}.` };
     }
 
     const activeRoundDoc = activeRoundsSnap.docs[0];
@@ -389,11 +394,12 @@ exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) =>
     });
 
     // 4. Spawn new active round
-    const newRoundRef = db.collection('gameRounds').doc();
-    const newEndTime = Timestamp.fromMillis(now.toMillis() + 30000);
+    const newRoundRef = db.collection(collectionName).doc();
+    const newEndTime = Timestamp.fromMillis(now.toMillis() + roundDurationMs);
     transaction.set(newRoundRef, {
       id: newRoundRef.id,
       roundNumber: activeRound.roundNumber + 1,
+      gameMode: mode,
       status: 'active',
       startTime: now,
       endTime: newEndTime,
@@ -412,6 +418,20 @@ exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) =>
       serverTime: now.toMillis()
     };
   });
+};
+
+/**
+ * Callable: settleRoundAndStartNew (30s mode)
+ */
+exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) => {
+  return settleGameRoundLogic('30s');
+});
+
+/**
+ * Callable: settleRound1m (1m mode)
+ */
+exports.settleRound1m = functions.https.onCall(async (data, context) => {
+  return settleGameRoundLogic('1m');
 });
 
 /**

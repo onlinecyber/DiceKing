@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { useAuth } from '../context/AuthContext';
 import Timer from '../components/Game/Timer';
@@ -13,12 +13,21 @@ import ResultModal from '../components/Game/ResultModal';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { toast, wallet, leaderboard } = useGame();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast, wallet, leaderboard, gameMode, setGameMode } = useGame();
   const { profile } = useAuth();
 
   const [showRules, setShowRules] = useState(false);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  // Sync mode query parameter on mount
+  useEffect(() => {
+    const modeParam = searchParams.get('mode');
+    if (modeParam === '1m' || modeParam === '30s') {
+      setGameMode(modeParam);
+    }
+  }, [searchParams, setGameMode]);
 
   // Today's fake winners ticker state
   const [winners, setWinners] = useState([
@@ -154,6 +163,74 @@ const Home = () => {
             </div>
           </div>
         </GlassCard>
+
+        {/* Game Mode Switcher Tabs (30s vs 1 Min) */}
+        <div style={{
+          display: 'flex',
+          background: 'rgba(26, 22, 43, 0.85)',
+          padding: '4px',
+          borderRadius: '16px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          marginBottom: '10px',
+          gap: '6px'
+        }}>
+          <button
+            onClick={() => {
+              setGameMode('30s');
+              setSearchParams({ mode: '30s' });
+            }}
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              borderRadius: '12px',
+              border: gameMode === '30s' ? '1px solid rgba(255, 215, 0, 0.5)' : '1px solid transparent',
+              background: gameMode === '30s'
+                ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.4) 0%, rgba(79, 70, 229, 0.2) 100%)'
+                : 'transparent',
+              color: gameMode === '30s' ? '#ffd700' : 'var(--text-secondary)',
+              fontWeight: gameMode === '30s' ? '900' : '600',
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: gameMode === '30s' ? '0 4px 16px rgba(124, 58, 237, 0.3)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <span>⚡</span>
+            <span>Dice 30s</span>
+          </button>
+          <button
+            onClick={() => {
+              setGameMode('1m');
+              setSearchParams({ mode: '1m' });
+            }}
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              borderRadius: '12px',
+              border: gameMode === '1m' ? '1px solid rgba(6, 182, 212, 0.6)' : '1px solid transparent',
+              background: gameMode === '1m'
+                ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.4) 0%, rgba(6, 182, 212, 0.2) 100%)'
+                : 'transparent',
+              color: gameMode === '1m' ? '#38bdf8' : 'var(--text-secondary)',
+              fontWeight: gameMode === '1m' ? '900' : '600',
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: gameMode === '1m' ? '0 4px 16px rgba(6, 182, 212, 0.3)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <span>⏱️</span>
+            <span>Dice 1 Min</span>
+          </button>
+        </div>
 
         {/* 1. Timer / Betting Status Bar */}
         <Timer />

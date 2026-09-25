@@ -30,8 +30,13 @@ service cloud.firestore {
       allow write: if false; // Only Cloud Functions (Admin SDK) can edit wallets
     }
 
-    // GameRounds collection
+    // GameRounds collections (30s and 1m)
     match /gameRounds/{roundId} {
+      allow read: if true; // Publicly readable
+      allow write: if false; // Only Cloud Functions can create/update
+    }
+
+    match /gameRounds_1m/{roundId} {
       allow read: if true; // Publicly readable
       allow write: if false; // Only Cloud Functions can create/update
     }

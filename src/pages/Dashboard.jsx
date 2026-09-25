@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Gamepad2, Wallet, Trophy, History, HeadphonesIcon,
-  Copy, Check, ArrowRight, Gift, Shield, Sparkles
+  Copy, Check, ArrowRight, Gift, Shield, Sparkles, Clock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGame } from '../context/GameContext';
@@ -14,7 +14,7 @@ import FirstDepositModal from '../components/Common/FirstDepositModal';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { wallet, activeRound, countdown, appSettings } = useGame();
+  const { wallet, activeRound, countdown, activeRound1m, countdown1m, appSettings } = useGame();
   const [copied, setCopied] = useState(false);
   const [showBonusModal, setShowBonusModal] = useState(false);
   const hasDeposited = (wallet?.totalDeposits && wallet.totalDeposits > 0) || profile?.firstDepositClaimed === true;
@@ -46,14 +46,24 @@ const Dashboard = () => {
 
   const quickActions = [
     {
-      id: 'play',
+      id: 'play_30s',
       icon: Gamepad2,
-      label: 'Play Now',
-      sublabel: activeRound ? `Round #${activeRound.roundNumber} • ${countdown}s left` : 'Game Active',
+      label: 'Dice 30s',
+      sublabel: activeRound ? `Round #${activeRound.roundNumber} • ${countdown}s left` : '30s Fast Rounds',
       gradient: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
       glow: 'rgba(124, 58, 237, 0.3)',
-      path: '/game',
-      badge: '🎲 LIVE'
+      path: '/game?mode=30s',
+      badge: '⚡ 30 SEC'
+    },
+    {
+      id: 'play_1m',
+      icon: Clock,
+      label: 'Dice 1 Min',
+      sublabel: activeRound1m ? `Round #${activeRound1m.roundNumber} • ${countdown1m}s left` : '1-Min Strategy',
+      gradient: 'linear-gradient(135deg, #0284c7, #06b6d4)',
+      glow: 'rgba(6, 182, 212, 0.35)',
+      path: '/game?mode=1m',
+      badge: '⏱️ 1 MIN'
     },
     {
       id: 'wallet',
