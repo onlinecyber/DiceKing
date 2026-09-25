@@ -194,8 +194,15 @@ exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) =>
 
     // Check if the current round timer has expired (with 2s grace period for client-server clock drift)
     if (now.toMillis() + 1500 < activeRound.endTime.toMillis()) {
-      console.log(`Round #${activeRound.roundNumber} is still active. Remaining time: ${activeRound.endTime.toMillis() - now.toMillis()}ms`);
-      return { success: false, message: 'Current round is still active.', activeRound };
+      const remainingMs = activeRound.endTime.toMillis() - now.toMillis();
+      console.log(`Round #${activeRound.roundNumber} is still active. Remaining time: ${remainingMs}ms`);
+      return { 
+        success: false, 
+        message: 'Current round is still active.', 
+        activeRound,
+        serverTime: now.toMillis(),
+        remainingMs
+      };
     }
 
     // 1. Fetch pending bets for this round first to calculate payout minimization
@@ -427,7 +434,8 @@ exports.settleRoundAndStartNew = functions.https.onCall(async (data, context) =>
       success: true,
       settledRound: activeRound.id,
       rolled: { dice1, dice2, total },
-      newRoundId: newRoundRef.id
+      newRoundId: newRoundRef.id,
+      serverTime: now.toMillis()
     };
   });
 });

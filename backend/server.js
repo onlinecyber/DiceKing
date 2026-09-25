@@ -283,7 +283,7 @@ const settleRoundAndStartNew = async (data, context) => {
   console.log("settleRoundAndStartNew called.");
   if (settlementLock) {
     console.log("Settlement already in progress, skipping.");
-    return { success: false, message: 'Settlement already in progress.' };
+    return { success: false, message: 'Settlement already in progress.', serverTime: Date.now() };
   }
 
   settlementLock = true;
@@ -320,8 +320,15 @@ const settleRoundAndStartNew = async (data, context) => {
       console.log(`Active round found: #${activeRound.roundNumber}, ID: ${activeRound.id}, EndTime: ${activeRound.endTime.toMillis()}, Now: ${now.toMillis()}`);
 
       if (now.toMillis() + 1500 < activeRound.endTime.toMillis()) {
-        console.log(`Round #${activeRound.roundNumber} is still active. Remaining time: ${activeRound.endTime.toMillis() - now.toMillis()}ms`);
-        return { success: false, message: 'Current round is still active.', activeRound };
+        const remainingMs = activeRound.endTime.toMillis() - now.toMillis();
+        console.log(`Round #${activeRound.roundNumber} is still active. Remaining time: ${remainingMs}ms`);
+        return { 
+          success: false, 
+          message: 'Current round is still active.', 
+          activeRound,
+          serverTime: now.toMillis(),
+          remainingMs
+        };
       }
 
       console.log(`Settling round #${activeRound.roundNumber}...`);
@@ -545,7 +552,8 @@ const settleRoundAndStartNew = async (data, context) => {
         success: true,
         settledRound: activeRound.id,
         rolled: { dice1, dice2, total },
-        newRoundId: newRoundRef.id
+        newRoundId: newRoundRef.id,
+        serverTime: now.toMillis()
       };
     });
     return result;
@@ -1066,7 +1074,8 @@ app.get('/api/version', (req, res) => {
   res.json({
     version: '1.1.0',
     buildTimestamp: '2026-09-23T11:06:00Z',
-    status: 'online'
+    status: 'online',
+    serverTime: Date.now()
   });
 });
 
@@ -1097,4 +1106,41 @@ if (!process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`DiceKing Express Backend running on port ${PORT}`);
   });
+
+  // Background Autonomous Game Loop: runs every 1 second to ensure 24/7 seamless round transitions
+  let gameLoopActive = false;
+  setInterval(async () => {
+    if (gameLoopActive || settlementLock) return;
+    try {
+      const activeRoundsQuery = db.collection('gameRounds').where('status', '==', 'active').limit(1);
+      const activeRoundsSnap = await activeRoundsQuery.get();
+      const now = Timestamp.now();
+
+      if (activeRoundsSnap.empty) {
+        console.log("[AutonomousGameLoop] No active round found. Auto-bootstrapping initial round...");
+        gameLoopActive = true;
+        await settleRoundAndStartNew({}, { auth: null });
+      } else {
+        const activeRound = activeRoundsSnap.docs[0].data();
+        if (activeRound.endTime && now.toMillis() >= activeRound.endTime.toMillis()) {
+          console.log(`[AutonomousGameLoop] Round #${activeRound.roundNumber} expired. Auto-settling...`);
+          gameLoopActive = true;
+          await settleRoundAndStartNew({}, { auth: null });
+        }
+      }
+    } catch (err) {
+      console.error("[AutonomousGameLoop] Loop error:", err.message);
+    } finally {
+      gameLoopActive = false;
+    }
+  }, 1000);
+
+  // Keep-alive self ping every 10 minutes to prevent Render free instance spin-down
+  setInterval(() => {
+    const targetUrl = process.env.RENDER_EXTERNAL_URL 
+      ? `${process.env.RENDER_EXTERNAL_URL}/api/version` 
+      : 'https://diceking-99si.onrender.com/api/version';
+    fetch(targetUrl).catch(() => {});
+  }, 10 * 60 * 1000);
 }
+

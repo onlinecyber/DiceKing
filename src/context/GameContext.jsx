@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
-import { callApi } from '../firebase/api';
+import { callApi, BACKEND_URL } from '../firebase/api';
 import { soundManager } from '../utils/soundManager';
 
 const GameContext = createContext();
@@ -57,6 +57,20 @@ export const GameProvider = ({ children }) => {
   // References to track changes
   const prevCompletedRoundIdRef = useRef(null);
   const triggerInProgress = useRef(false);
+  const nextAllowedSettleTimeRef = useRef(0);
+  const serverTimeOffsetRef = useRef(0);
+
+  // Initial server wake-up & clock sync
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/version`)
+      .then(res => res.json())
+      .then(data => {
+        if (data?.serverTime) {
+          serverTimeOffsetRef.current = data.serverTime - Date.now();
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Sound effects or visual notifications helper
   const showToast = (message, type = 'info') => {
@@ -103,29 +117,44 @@ export const GameProvider = ({ children }) => {
   // Settle Round trigger
   const triggerSettleRound = async () => {
     if (triggerInProgress.current) return;
+    if (Date.now() < nextAllowedSettleTimeRef.current) return;
+
     triggerInProgress.current = true;
     setSettling(true);
-    setRolling(true);
+    // NOTE: We do NOT set rolling=true here!
+    // The rolling dice animation is exclusively triggered when the new completed round
+    // with actual dice numbers is received via Firestore onSnapshot.
 
     const safetyTimer = setTimeout(() => {
       triggerInProgress.current = false;
       setSettling(false);
-      setRolling(false);
-    }, 4000);
+    }, 6000);
 
     try {
       console.log("Triggering round settlement...");
       const result = await settleRoundFn();
       console.log("Round settlement result:", result?.data);
+
+      if (result?.data?.serverTime) {
+        serverTimeOffsetRef.current = result.data.serverTime - Date.now();
+      }
+
+      if (result?.data?.success) {
+        // Successfully settled, allow 2s for Firestore snapshot propagation
+        nextAllowedSettleTimeRef.current = Date.now() + 2000;
+      } else {
+        // Server rejected or settlement already in progress, backoff cleanly
+        const waitMs = result?.data?.remainingMs ? Math.max(2000, result.data.remainingMs) : 3500;
+        nextAllowedSettleTimeRef.current = Date.now() + waitMs;
+      }
     } catch (error) {
       console.error("Error triggering round settlement:", error);
+      // Wait 5 seconds before retrying on error (prevents spamming while backend spins up)
+      nextAllowedSettleTimeRef.current = Date.now() + 5000;
     } finally {
       clearTimeout(safetyTimer);
-      setTimeout(() => {
-        triggerInProgress.current = false;
-        setSettling(false);
-        setRolling(false);
-      }, 1500);
+      triggerInProgress.current = false;
+      setSettling(false);
     }
   };
 
@@ -315,7 +344,8 @@ export const GameProvider = ({ children }) => {
     if (!activeRound || !activeRound.endTime) return;
 
     const tick = () => {
-      const now = Date.now();
+      // Use calibrated time (local time + server clock offset) to prevent false early triggers
+      const now = Date.now() + serverTimeOffsetRef.current;
       const endTime = getMillis(activeRound.endTime);
       const deltaSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
       
@@ -325,8 +355,8 @@ export const GameProvider = ({ children }) => {
         soundManager.playTick();
       }
 
-      // If timer hit 0, settle the round
-      if (deltaSeconds <= 0 && activeRound.status === 'active' && !settling && !triggerInProgress.current) {
+      // If timer hit 0, settle the round (with rate-limiting guard)
+      if (deltaSeconds <= 0 && activeRound.status === 'active' && !settling && !triggerInProgress.current && Date.now() >= nextAllowedSettleTimeRef.current) {
         triggerSettleRound();
       }
     };

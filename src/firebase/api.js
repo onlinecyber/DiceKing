@@ -8,7 +8,7 @@ const getBackendUrl = () => {
   return 'http://localhost:5000';
 };
 
-const BACKEND_URL = getBackendUrl();
+export const BACKEND_URL = getBackendUrl();
 
 export const callApi = async (name, data = {}) => {
   const user = auth.currentUser;
