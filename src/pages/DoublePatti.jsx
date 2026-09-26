@@ -14,6 +14,7 @@ import { useGame } from '../context/GameContext';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Common/Navbar';
 import GlassCard from '../components/Common/GlassCard';
+import PattiResultModal from '../components/Game/PattiResultModal';
 
 const DoublePatti = () => {
   const navigate = useNavigate();
@@ -734,117 +735,8 @@ const DoublePatti = () => {
 
       </div>
 
-      {/* Result Modal Celebration */}
-      {pattiResultModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999,
-          padding: '20px'
-        }}>
-          <GlassCard style={{
-            maxWidth: '360px',
-            width: '100%',
-            padding: '24px 20px',
-            borderRadius: '24px',
-            textAlign: 'center',
-            border: pattiResultModal.type === 'win' ? '2px solid var(--accent-gold)' : '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: pattiResultModal.type === 'win' ? '0 0 40px rgba(245, 158, 11, 0.4)' : 'none'
-          }}>
-            <div style={{ fontSize: '3rem', marginBottom: '10px' }}>
-              {pattiResultModal.type === 'win' ? '🎉' : '🎲'}
-            </div>
-
-            <div style={{
-              fontSize: '1.25rem',
-              fontWeight: '900',
-              color: pattiResultModal.type === 'win' ? 'var(--accent-gold)' : '#fff',
-              marginBottom: '6px'
-            }}>
-              {pattiResultModal.type === 'win' ? 'YOU WON!' : 'ROUND RESULT'}
-            </div>
-
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Round #{pattiResultModal.roundNumber} Result Cards
-            </div>
-
-            {/* Revealed Cards */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '18px' }}>
-              <div style={{
-                width: '60px',
-                height: '80px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                color: '#000',
-                fontSize: '2rem',
-                fontWeight: '900',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                {pattiResultModal.card1}
-              </div>
-              <div style={{
-                width: '60px',
-                height: '80px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, #d946ef, #a855f7)',
-                color: '#fff',
-                fontSize: '2rem',
-                fontWeight: '900',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                {pattiResultModal.card2}
-              </div>
-            </div>
-
-            {pattiResultModal.type === 'win' ? (
-              <div style={{
-                background: 'rgba(34, 197, 94, 0.15)',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-                borderRadius: '14px',
-                padding: '12px',
-                marginBottom: '16px'
-              }}>
-                <div style={{ fontSize: '0.7rem', color: '#4ade80', fontWeight: '700' }}>
-                  TOTAL WINNINGS
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#4ade80' }}>
-                  ₹{pattiResultModal.wonAmount?.toFixed(2)}
-                </div>
-              </div>
-            ) : (
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                Better luck in the next round! Try a different combination.
-              </div>
-            )}
-
-            <button
-              onClick={closePattiResultModal}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, var(--accent-gold), #d97706)',
-                border: 'none',
-                color: '#000',
-                fontWeight: '800',
-                fontSize: '0.85rem',
-                cursor: 'pointer'
-              }}
-            >
-              Continue Playing
-            </button>
-          </GlassCard>
-        </div>
-      )}
+      {/* Result Modal Celebration (Dice King Style) */}
+      <PattiResultModal />
 
       {/* Rules Modal */}
       {showRulesModal && (

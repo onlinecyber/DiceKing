@@ -6,6 +6,7 @@ import {
   orderBy, 
   limit, 
   onSnapshot, 
+  getDocs,
   doc,
   setDoc,
   serverTimestamp
@@ -547,42 +548,33 @@ export const GameProvider = ({ children }) => {
     }, (error) => console.error("Active Patti round snapshot error:", error));
 
     const triggerPattiResultModal = async (completedRound) => {
-      if (!currentUser) return;
+      if (!currentUser || !completedRound) return;
 
       let userBets = [];
 
       try {
-        const token = await currentUser.getIdToken();
-        const res = await fetch(`${BACKEND_URL}/api/getMyPattiBets`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.success && Array.isArray(data.bets)) {
-            userBets = data.bets.filter(b => 
-              (b.roundId && b.roundId === completedRound.id) ||
-              (b.roundNumber && String(b.roundNumber) === String(completedRound.roundNumber))
-            );
-          }
-        }
-      } catch (e) {
-        console.error("Error fetching patti bets for result modal:", e);
-      }
-
-      if (userBets.length === 0) {
-        userBets = recentBetsPatti.filter(b => 
-          (b.roundId && b.roundId === completedRound.id) ||
-          (b.roundNumber && String(b.roundNumber) === String(completedRound.roundNumber))
+        // 1. Primary lookup by roundId in Firestore
+        const qByRoundId = query(
+          collection(db, 'pattiBets'),
+          where('uid', '==', currentUser.uid),
+          where('roundId', '==', completedRound.id)
         );
-      }
+        const snap = await getDocs(qByRoundId);
+        userBets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // If user did not place a bet in this round, do not show popup
-      if (userBets.length === 0) return;
+        // 2. Fallback lookup by roundNumber if roundId doc was empty
+        if (userBets.length === 0 && completedRound.roundNumber) {
+          const qByRoundNum = query(
+            collection(db, 'pattiBets'),
+            where('uid', '==', currentUser.uid),
+            where('roundNumber', '==', Number(completedRound.roundNumber))
+          );
+          const snapNum = await getDocs(qByRoundNum);
+          userBets = snapNum.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
 
-      // If bets are still pending, wait 1s for backend transaction to settle fully
-      if (userBets.some(b => b.status === 'pending')) {
-        await new Promise(r => setTimeout(r, 1000));
-        try {
+        // 3. Fallback to API call if Firestore direct queries return empty
+        if (userBets.length === 0) {
           const token = await currentUser.getIdToken();
           const res = await fetch(`${BACKEND_URL}/api/getMyPattiBets`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -595,6 +587,35 @@ export const GameProvider = ({ children }) => {
                 (b.roundNumber && String(b.roundNumber) === String(completedRound.roundNumber))
               );
             }
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching patti bets for result modal:", e);
+      }
+
+      // 4. Fallback to recentBetsPatti local state
+      if (userBets.length === 0) {
+        userBets = recentBetsPatti.filter(b => 
+          (b.roundId && b.roundId === completedRound.id) ||
+          (b.roundNumber && String(b.roundNumber) === String(completedRound.roundNumber))
+        );
+      }
+
+      // If user did not place any bet in this round, do not show popup
+      if (userBets.length === 0) return;
+
+      // If any bets are still 'pending' (backend settlement transaction in progress), wait 800ms and re-fetch
+      if (userBets.some(b => b.status === 'pending')) {
+        await new Promise(r => setTimeout(r, 800));
+        try {
+          const qByRoundId = query(
+            collection(db, 'pattiBets'),
+            where('uid', '==', currentUser.uid),
+            where('roundId', '==', completedRound.id)
+          );
+          const snapRetry = await getDocs(qByRoundId);
+          if (!snapRetry.empty) {
+            userBets = snapRetry.docs.map(d => ({ id: d.id, ...d.data() }));
           }
         } catch (e) {}
       }
@@ -636,8 +657,8 @@ export const GameProvider = ({ children }) => {
         type: isWin ? 'win' : 'loss',
         period,
         roundNumber: completedRound.roundNumber,
-        card1: completedRound.card1,
-        card2: completedRound.card2,
+        card1: completedRound.card1 ?? '?',
+        card2: completedRound.card2 ?? '?',
         wonAmount,
         totalBetAmount,
         bets: userBets
