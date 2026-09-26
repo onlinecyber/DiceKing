@@ -560,6 +560,315 @@ const settleRoundAndStartNew_1m = async (data, context) => {
   return settleGameRound('1m');
 };
 
+let settlementLockPatti = false;
+
+const placePattiBet = async (data, context) => {
+  const uid = context.auth.uid;
+  const { roundId, numbers, amount } = data;
+
+  if (!roundId || !Array.isArray(numbers) || numbers.length !== 2 || typeof amount !== 'number' || amount <= 0) {
+    throw new HttpsError('invalid-argument', 'Invalid Patti bet parameters. Exactly 2 numbers (0-9) required.');
+  }
+
+  const [n1, n2] = numbers.map(Number);
+  if (isNaN(n1) || isNaN(n2) || n1 < 0 || n1 > 9 || n2 < 0 || n2 > 9 || n1 === n2) {
+    throw new HttpsError('invalid-argument', 'Please select 2 distinct numbers between 0 and 9.');
+  }
+
+  const roundRef = db.collection('pattiRounds').doc(roundId);
+  const walletRef = db.collection('wallets').doc(uid);
+  const betRef = db.collection('pattiBets').doc();
+
+  return db.runTransaction(async (transaction) => {
+    const [roundSnap, walletSnap] = await Promise.all([
+      transaction.get(roundRef),
+      transaction.get(walletRef)
+    ]);
+
+    if (!roundSnap.exists) {
+      throw new HttpsError('not-found', 'Double Patti round not found.');
+    }
+    const round = roundSnap.data();
+    if (round.status !== 'active') {
+      throw new HttpsError('failed-precondition', 'Betting is closed for this round.');
+    }
+
+    const now = Date.now();
+    const endTime = round.endTime ? (round.endTime.toMillis ? round.endTime.toMillis() : round.endTime.seconds * 1000) : 0;
+    if (now >= endTime - 2000) {
+      throw new HttpsError('failed-precondition', 'Betting is closed for this round.');
+    }
+
+    if (!walletSnap.exists) {
+      throw new HttpsError('not-found', 'User wallet not found.');
+    }
+    const wallet = walletSnap.data();
+    if (wallet.balance < amount) {
+      throw new HttpsError('failed-precondition', 'Insufficient balance to place bet.');
+    }
+
+    const displayName = data.displayName || (context.auth && (context.auth.name || context.auth.displayName)) || 'Player';
+    const newBalance = wallet.balance - amount;
+    const newWageringRequired = Math.max(0, (wallet.wageringRequired || 0) - amount);
+    const newTotalBets = (wallet.totalBets || 0) + amount;
+
+    transaction.update(walletRef, {
+      balance: newBalance,
+      wageringRequired: newWageringRequired,
+      totalBets: newTotalBets,
+      updatedAt: FieldValue.serverTimestamp()
+    });
+
+    transaction.set(betRef, {
+      id: betRef.id,
+      uid,
+      displayName,
+      gameMode: 'patti',
+      roundId,
+      roundNumber: round.roundNumber,
+      numbers: [n1, n2],
+      amount,
+      status: 'pending',
+      payout: 0,
+      matchCount: 0,
+      createdAt: FieldValue.serverTimestamp()
+    });
+
+    return { success: true, balance: newBalance };
+  });
+};
+
+const settlePattiRound = async () => {
+  if (settlementLockPatti) {
+    console.log('[Patti] Settlement already in progress, skipping.');
+    return { success: false, message: 'Settlement already in progress.', serverTime: Date.now() };
+  }
+
+  settlementLockPatti = true;
+  const roundDurationMs = 60000;
+
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const activeRoundsSnap = await transaction.get(db.collection('pattiRounds').where('status', '==', 'active'));
+      const activeRoundDoc = activeRoundsSnap.docs[0];
+      const now = Timestamp.now();
+
+      if (!activeRoundDoc) {
+        console.log('[Patti] No active round found. Bootstrapping initial round #1001.');
+        const nextRoundNumber = 1001;
+        const endTime = Timestamp.fromMillis(now.toMillis() + roundDurationMs);
+        const newRoundRef = db.collection('pattiRounds').doc();
+
+        transaction.set(newRoundRef, {
+          id: newRoundRef.id,
+          roundNumber: nextRoundNumber,
+          gameMode: 'patti',
+          status: 'active',
+          startTime: now,
+          endTime: endTime,
+          card1: null,
+          card2: null,
+          winningNumbers: [],
+          createdAt: now
+        });
+        return { success: true, message: 'Created initial active round for Double Patti.' };
+      }
+
+      const activeRound = activeRoundDoc.data();
+      const endTimeMs = activeRound.endTime ? (activeRound.endTime.toMillis ? activeRound.endTime.toMillis() : activeRound.endTime.seconds * 1000) : 0;
+
+      if (now.toMillis() + 1500 < endTimeMs) {
+        const remainingMs = endTimeMs - now.toMillis();
+        return {
+          success: false,
+          message: 'Current Patti round is still active.',
+          activeRound,
+          serverTime: now.toMillis(),
+          remainingMs
+        };
+      }
+
+      console.log(`Settling Double Patti round #${activeRound.roundNumber}...`);
+
+      const betsQuery = db.collection('pattiBets')
+        .where('roundId', '==', activeRound.id)
+        .where('status', '==', 'pending');
+      const betsSnap = await transaction.get(betsQuery);
+
+      // Generate all 45 unique unordered pairs of (0-9)
+      const candidatePairs = [];
+      for (let i = 0; i <= 9; i++) {
+        for (let j = i + 1; j <= 9; j++) {
+          candidatePairs.push([i, j]);
+        }
+      }
+
+      const payoutsByPair = {};
+      candidatePairs.forEach(([a, b]) => {
+        let totalPayout = 0;
+        betsSnap.docs.forEach(doc => {
+          const bet = doc.data();
+          const [n1, n2] = bet.numbers;
+          const matchA = n1 === a || n2 === a;
+          const matchB = n1 === b || n2 === b;
+          const bothMatch = matchA && matchB;
+          const singleMatch = (matchA || matchB) && !bothMatch;
+
+          let multiplier = 0;
+          if (bothMatch) multiplier = 9.0;
+          else if (singleMatch) multiplier = 1.5;
+
+          if (multiplier > 0) {
+            totalPayout += bet.amount * multiplier;
+          }
+        });
+        payoutsByPair[`${a}_${b}`] = totalPayout;
+      });
+
+      let minPayout = Infinity;
+      candidatePairs.forEach(([a, b]) => {
+        const p = payoutsByPair[`${a}_${b}`];
+        if (p < minPayout) minPayout = p;
+      });
+
+      const bestPairs = candidatePairs.filter(([a, b]) => payoutsByPair[`${a}_${b}`] === minPayout);
+      const chosenPair = bestPairs[Math.floor(Math.random() * bestPairs.length)];
+      const shuffle = Math.random() < 0.5;
+      const card1 = shuffle ? chosenPair[0] : chosenPair[1];
+      const card2 = shuffle ? chosenPair[1] : chosenPair[0];
+      const winningNumbers = [card1, card2];
+
+      const betsToUpdate = [];
+      const walletsToUpdate = {};
+      const leaderboardToUpdate = {};
+
+      for (const doc of betsSnap.docs) {
+        const bet = doc.data();
+        const [n1, n2] = bet.numbers;
+        const matchCard1 = n1 === card1 || n2 === card1;
+        const matchCard2 = n1 === card2 || n2 === card2;
+        const bothMatch = matchCard1 && matchCard2;
+        const singleMatch = (matchCard1 || matchCard2) && !bothMatch;
+
+        let multiplier = 0;
+        let matchCount = 0;
+        if (bothMatch) {
+          multiplier = 9.0;
+          matchCount = 2;
+        } else if (singleMatch) {
+          multiplier = 1.5;
+          matchCount = 1;
+        }
+
+        const won = multiplier > 0;
+        const grossPayout = won ? bet.amount * multiplier : 0;
+        const payout = won ? Math.round(grossPayout * 0.95 * 100) / 100 : 0;
+
+        betsToUpdate.push({
+          ref: doc.ref,
+          status: won ? 'won' : 'lost',
+          matchCount,
+          payout
+        });
+
+        if (won) {
+          if (!walletsToUpdate[bet.uid]) walletsToUpdate[bet.uid] = 0;
+          walletsToUpdate[bet.uid] += payout;
+
+          if (!leaderboardToUpdate[bet.uid]) {
+            leaderboardToUpdate[bet.uid] = { displayName: bet.displayName, winnings: 0 };
+          }
+          leaderboardToUpdate[bet.uid].winnings += payout;
+        }
+      }
+
+      // Fetch all needed wallet and leaderboard documents FIRST (ALL READS BEFORE WRITES)
+      const walletSnaps = {};
+      for (const uid of Object.keys(walletsToUpdate)) {
+        walletSnaps[uid] = await transaction.get(db.collection('wallets').doc(uid));
+      }
+
+      const lbSnaps = {};
+      for (const uid of Object.keys(leaderboardToUpdate)) {
+        lbSnaps[uid] = await transaction.get(db.collection('leaderboard').doc(uid));
+      }
+
+      // WRITES
+      for (const update of betsToUpdate) {
+        transaction.update(update.ref, {
+          status: update.status,
+          matchCount: update.matchCount,
+          payout: update.payout
+        });
+      }
+
+      for (const [uid, payout] of Object.entries(walletsToUpdate)) {
+        const walletSnap = walletSnaps[uid];
+        if (walletSnap && walletSnap.exists) {
+          transaction.update(db.collection('wallets').doc(uid), {
+            balance: walletSnap.data().balance + payout,
+            updatedAt: now
+          });
+        }
+      }
+
+      for (const [uid, data] of Object.entries(leaderboardToUpdate)) {
+        const lbSnap = lbSnaps[uid];
+        const lbRef = db.collection('leaderboard').doc(uid);
+        if (lbSnap && lbSnap.exists) {
+          transaction.update(lbRef, {
+            totalWinnings: lbSnap.data().totalWinnings + data.winnings,
+            updatedAt: now
+          });
+        } else {
+          transaction.set(lbRef, {
+            uid,
+            displayName: data.displayName,
+            totalWinnings: data.winnings,
+            updatedAt: now
+          });
+        }
+      }
+
+      transaction.update(activeRoundDoc.ref, {
+        status: 'completed',
+        card1,
+        card2,
+        winningNumbers: [card1, card2]
+      });
+
+      const newRoundRef = db.collection('pattiRounds').doc();
+      const newEndTime = Timestamp.fromMillis(now.toMillis() + roundDurationMs);
+      transaction.set(newRoundRef, {
+        id: newRoundRef.id,
+        roundNumber: activeRound.roundNumber + 1,
+        gameMode: 'patti',
+        status: 'active',
+        startTime: now,
+        endTime: newEndTime,
+        card1: null,
+        card2: null,
+        winningNumbers: [],
+        createdAt: now
+      });
+
+      return {
+        success: true,
+        settledRound: activeRound.id,
+        drawn: { card1, card2, winningNumbers },
+        newRoundId: newRoundRef.id,
+        serverTime: now.toMillis()
+      };
+    });
+    return result;
+  } catch (error) {
+    console.error('Error in settlePattiRound transaction:', error);
+    throw error;
+  } finally {
+    settlementLockPatti = false;
+  }
+};
+
 const generateOrderNumber = (prefix = 'WD') => {
   const now = new Date();
   const pad = (n, len = 2) => String(n).padStart(len, '0');
@@ -1138,8 +1447,10 @@ const applyReferralCode = async (data, context) => {
 
 app.post('/api/onUserCreated', decodeToken, requireAuth, handleRequest(onUserCreated));
 app.post('/api/placeBet', decodeToken, requireAuth, handleRequest(placeBet));
+app.post('/api/placePattiBet', decodeToken, requireAuth, handleRequest(placePattiBet));
 app.post('/api/settleRoundAndStartNew', decodeToken, handleRequest(settleRoundAndStartNew));
 app.post('/api/settleRound1m', decodeToken, handleRequest(settleRoundAndStartNew_1m));
+app.post('/api/settlePattiRound', decodeToken, handleRequest(settlePattiRound));
 app.post('/api/submitDepositRequest', decodeToken, requireAuth, handleRequest(submitDepositRequest));
 app.post('/api/submitWithdrawalRequest', decodeToken, requireAuth, handleRequest(submitWithdrawalRequest));
 app.post('/api/bindPayoutAccount', decodeToken, requireAuth, handleRequest(bindPayoutAccount));
@@ -1248,9 +1559,47 @@ if (!process.env.VERCEL) {
     }
   };
 
+  const runSchedulerForPatti = async () => {
+    const defaultDuration = 60000;
+    let nextDelayMs = defaultDuration;
+
+    try {
+      const activeSnaps = await db.collection('pattiRounds').where('status', '==', 'active').get();
+      const now = Date.now();
+      const roundDoc = activeSnaps.docs[0];
+
+      if (!roundDoc) {
+        console.log('[AutonomousScheduler Patti] No active round. Bootstrapping initial round...');
+        await settlePattiRound();
+        nextDelayMs = defaultDuration;
+      } else {
+        const roundData = roundDoc.data();
+        const endTimeMs = roundData.endTime 
+          ? (roundData.endTime.toMillis ? roundData.endTime.toMillis() : roundData.endTime.seconds * 1000) 
+          : now;
+        const remainingMs = endTimeMs - now;
+
+        if (remainingMs <= 500) {
+          console.log(`[AutonomousScheduler Patti] Round #${roundData.roundNumber} expired. Settling...`);
+          await settlePattiRound();
+          nextDelayMs = defaultDuration;
+        } else {
+          nextDelayMs = remainingMs + 500;
+        }
+      }
+    } catch (err) {
+      console.error('[AutonomousScheduler Patti] Error:', err.message);
+      nextDelayMs = 15000;
+    } finally {
+      const safeDelay = Math.max(1000, Math.min(nextDelayMs, defaultDuration + 2000));
+      setTimeout(() => runSchedulerForPatti(), safeDelay);
+    }
+  };
+
   // Launch initial scheduling
   setTimeout(() => runSchedulerForMode('30s'), 2000);
   setTimeout(() => runSchedulerForMode('1m'), 3000);
+  setTimeout(() => runSchedulerForPatti(), 4000);
 
   // Keep-alive self ping every 10 minutes to prevent Render free instance spin-down
   setInterval(() => {

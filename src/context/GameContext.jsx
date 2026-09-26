@@ -41,6 +41,18 @@ export const GameProvider = ({ children }) => {
   const [rolledDice1m, setRolledDice1m] = useState({ dice1: 1, dice2: 1, total: 2 });
   const [settling1m, setSettling1m] = useState(false);
 
+  // Double Patti States
+  const [activeRoundPatti, setActiveRoundPatti] = useState(null);
+  const [historyPatti, setHistoryPatti] = useState([]);
+  const [countdownPatti, setCountdownPatti] = useState(60);
+  const [revealingPatti, setRevealingPatti] = useState(false);
+  const [revealedCardsPatti, setRevealedCardsPatti] = useState({ card1: 0, card2: 0 });
+  const [settlingPatti, setSettlingPatti] = useState(false);
+  const [recentBetsPatti, setRecentBetsPatti] = useState([]);
+  const [pattiResultModal, setPattiResultModal] = useState(null);
+
+  const closePattiResultModal = () => setPattiResultModal(null);
+
   // Shared States
   const [leaderboard, setLeaderboard] = useState([]);
   const [wallet, setWallet] = useState(null);
@@ -65,6 +77,13 @@ export const GameProvider = ({ children }) => {
     }
   }, [rolling1m]);
 
+  useEffect(() => {
+    if (revealingPatti) {
+      const timer = setTimeout(() => setRevealingPatti(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [revealingPatti]);
+
   // App Settings state with default Indian settings values
   const [appSettings, setAppSettings] = useState({
     upiId: '8406884196@ptaxis',
@@ -78,10 +97,13 @@ export const GameProvider = ({ children }) => {
   // References to track changes
   const prevCompletedRoundIdRef = useRef(null);
   const prevCompletedRoundId1mRef = useRef(null);
+  const prevCompletedRoundIdPattiRef = useRef(null);
   const triggerInProgress = useRef(false);
   const triggerInProgress1m = useRef(false);
+  const triggerInProgressPatti = useRef(false);
   const nextAllowedSettleTimeRef = useRef(0);
   const nextAllowedSettleTime1mRef = useRef(0);
+  const nextAllowedSettleTimePattiRef = useRef(0);
   const serverTimeOffsetRef = useRef(0);
 
   // Initial server wake-up & clock sync
@@ -104,8 +126,10 @@ export const GameProvider = ({ children }) => {
 
   // 1. Standalone Backend API Calls Bindings
   const placeBetFn = (data) => callApi('placeBet', data);
+  const placePattiBetFn = (data) => callApi('placePattiBet', data);
   const settleRoundFn = (data) => callApi('settleRoundAndStartNew', data);
   const settleRound1mFn = (data) => callApi('settleRound1m', data);
+  const settlePattiRoundFn = (data) => callApi('settlePattiRound', data);
   const submitDepositFn = (data) => callApi('submitDepositRequest', data);
   const submitWithdrawalFn = (data) => callApi('submitWithdrawalRequest', data);
   const bindPayoutAccountFn = (data) => callApi('bindPayoutAccount', data);
@@ -138,6 +162,33 @@ export const GameProvider = ({ children }) => {
         setWallet(prev => prev ? { ...prev, balance: prevBalance } : prev);
       }
       showToast(error.message || "Failed to place bet.", 'error');
+      throw error;
+    }
+  };
+
+  // Place Patti Bet wrapper (Optimistic UI Feedback)
+  const placePattiBet = async (numbers, amount) => {
+    if (!activeRoundPatti) throw new Error("No active Double Patti round available.");
+
+    const prevBalance = wallet?.balance;
+    if (wallet && typeof wallet.balance === 'number') {
+      setWallet(prev => prev ? { ...prev, balance: Math.max(0, prev.balance - amount) } : prev);
+    }
+
+    try {
+      const result = await placePattiBetFn({
+        roundId: activeRoundPatti.id,
+        numbers,
+        amount: Number(amount),
+        displayName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Player'
+      });
+      showToast(`Patti bet placed on [${numbers.join(', ')}] with ₹${amount}!`, 'success');
+      return result.data;
+    } catch (error) {
+      if (typeof prevBalance === 'number') {
+        setWallet(prev => prev ? { ...prev, balance: prevBalance } : prev);
+      }
+      showToast(error.message || "Failed to place Patti bet.", 'error');
       throw error;
     }
   };
@@ -209,6 +260,41 @@ export const GameProvider = ({ children }) => {
       clearTimeout(safetyTimer);
       triggerInProgress1m.current = false;
       setSettling1m(false);
+    }
+  };
+
+  // Settle Round trigger (Double Patti)
+  const triggerSettlePattiRound = async () => {
+    if (triggerInProgressPatti.current) return;
+    if (Date.now() < nextAllowedSettleTimePattiRef.current) return;
+
+    triggerInProgressPatti.current = true;
+    setSettlingPatti(true);
+
+    const safetyTimer = setTimeout(() => {
+      triggerInProgressPatti.current = false;
+      setSettlingPatti(false);
+    }, 6000);
+
+    try {
+      const result = await settlePattiRoundFn();
+      if (result?.data?.serverTime) {
+        serverTimeOffsetRef.current = result.data.serverTime - Date.now();
+      }
+
+      if (result?.data?.success) {
+        nextAllowedSettleTimePattiRef.current = Date.now() + 2000;
+      } else {
+        const waitMs = result?.data?.remainingMs ? Math.max(2000, result.data.remainingMs) : 3500;
+        nextAllowedSettleTimePattiRef.current = Date.now() + waitMs;
+      }
+    } catch (error) {
+      console.error("Error triggering Patti round settlement:", error);
+      nextAllowedSettleTimePattiRef.current = Date.now() + 5000;
+    } finally {
+      clearTimeout(safetyTimer);
+      triggerInProgressPatti.current = false;
+      setSettlingPatti(false);
     }
   };
 
@@ -430,9 +516,91 @@ export const GameProvider = ({ children }) => {
       setLeaderboard(snapshot.docs.map(doc => doc.data()));
     }, (error) => console.error("Leaderboard snapshot error:", error));
 
+    // Listen to active Patti round
+    const activePattiQuery = query(
+      collection(db, 'pattiRounds'),
+      where('status', '==', 'active')
+    );
+
+    const unsubscribeActivePatti = onSnapshot(activePattiQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        setActiveRoundPatti(snapshot.docs[0].data());
+      } else {
+        triggerSettlePattiRound();
+      }
+    }, (error) => console.error("Active Patti round snapshot error:", error));
+
+    // Listen to completed Patti rounds history
+    const historyPattiQuery = query(
+      collection(db, 'pattiRounds'),
+      where('status', '==', 'completed'),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+
+    const unsubscribeHistoryPatti = onSnapshot(historyPattiQuery, (snapshot) => {
+      const rounds = snapshot.docs.map(doc => doc.data());
+      setHistoryPatti(rounds);
+
+      if (rounds.length > 0) {
+        const latestCompleted = rounds[0];
+        if (prevCompletedRoundIdPattiRef.current && prevCompletedRoundIdPattiRef.current !== latestCompleted.id) {
+          setRevealingPatti(true);
+          soundManager.playDiceRoll();
+          setRevealedCardsPatti({
+            card1: latestCompleted.card1 ?? 0,
+            card2: latestCompleted.card2 ?? 0
+          });
+
+          setTimeout(() => {
+            setRevealingPatti(false);
+            if (currentUser) {
+              const userPattiQuery = query(
+                collection(db, 'pattiBets'),
+                where('uid', '==', currentUser.uid),
+                where('roundId', '==', latestCompleted.id)
+              );
+              onSnapshot(userPattiQuery, (bSnap) => {
+                if (bSnap.empty) return;
+                let wonAmount = 0;
+                let totalBetAmount = 0;
+                const betsList = [];
+                bSnap.forEach(bd => {
+                  const b = bd.data();
+                  totalBetAmount += (Number(b.amount) || 0);
+                  if (b.status === 'won') wonAmount += (Number(b.payout) || 0);
+                  betsList.push(b);
+                });
+                const isWin = wonAmount > 0;
+                if (isWin) {
+                  soundManager.playWin();
+                  showToast(`🎉 You Won ₹${wonAmount.toFixed(2)} in Patti Round #${latestCompleted.roundNumber}!`, 'success');
+                } else {
+                  soundManager.playLoss();
+                  showToast(`Patti Round #${latestCompleted.roundNumber} Result: [${latestCompleted.card1}, ${latestCompleted.card2}]`, 'info');
+                }
+                setPattiResultModal({
+                  type: isWin ? 'win' : 'loss',
+                  roundNumber: latestCompleted.roundNumber,
+                  card1: latestCompleted.card1,
+                  card2: latestCompleted.card2,
+                  wonAmount,
+                  totalBetAmount,
+                  bets: betsList
+                });
+              }, { onlyOnce: true });
+            }
+          }, 1500);
+        }
+        prevCompletedRoundIdPattiRef.current = latestCompleted.id;
+      }
+    }, (error) => console.error("History Patti snapshot error:", error));
+
     return () => {
       unsubscribeActiveRounds();
       unsubscribeHistory();
+      unsubscribeActivePatti();
+      unsubscribeHistoryPatti();
       unsubscribeLeaderboard();
       unsubscribeSettings();
     };
@@ -443,6 +611,7 @@ export const GameProvider = ({ children }) => {
     if (!currentUser) {
       setWallet(null);
       setRecentBets([]);
+      setRecentBetsPatti([]);
       return;
     }
 
@@ -466,9 +635,22 @@ export const GameProvider = ({ children }) => {
       setRecentBets(snapshot.docs.map(doc => doc.data()));
     }, (error) => console.error("Bets snapshot error:", error));
 
+    // Subscribe to User's recent Patti bets
+    const pattiBetsQuery = query(
+      collection(db, 'pattiBets'),
+      where('uid', '==', currentUser.uid),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+
+    const unsubscribePattiBets = onSnapshot(pattiBetsQuery, (snapshot) => {
+      setRecentBetsPatti(snapshot.docs.map(doc => doc.data()));
+    }, (error) => console.error("Patti bets snapshot error:", error));
+
     return () => {
       unsubscribeWallet();
       unsubscribeBets();
+      unsubscribePattiBets();
     };
   }, [currentUser]);
 
@@ -537,6 +719,31 @@ export const GameProvider = ({ children }) => {
     return () => clearInterval(intervalId);
   }, [activeRound1m, settling1m, rolling1m, gameMode]);
 
+  // Double Patti 1-Minute Timer ticking interval
+  useEffect(() => {
+    if (!activeRoundPatti || !activeRoundPatti.endTime) return;
+
+    const tickPatti = () => {
+      const now = Date.now() + serverTimeOffsetRef.current;
+      const endTime = getMillis(activeRoundPatti.endTime);
+      const deltaSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
+
+      setCountdownPatti(deltaSeconds);
+
+      if (deltaSeconds > 0 && deltaSeconds <= 5 && !revealingPatti) {
+        soundManager.playTick();
+      }
+
+      if (deltaSeconds <= 0 && activeRoundPatti.status === 'active' && !settlingPatti && !triggerInProgressPatti.current && Date.now() >= nextAllowedSettleTimePattiRef.current) {
+        triggerSettlePattiRound();
+      }
+    };
+
+    tickPatti();
+    const intervalId = setInterval(tickPatti, 1000);
+    return () => clearInterval(intervalId);
+  }, [activeRoundPatti, settlingPatti, revealingPatti]);
+
   // Admin Settings update helper
   const saveAppSettings = async (newSettings) => {
     try {
@@ -595,6 +802,18 @@ export const GameProvider = ({ children }) => {
     history1m,
     countdown30s: countdown,
     countdown1m,
+    // Double Patti exports
+    activeRoundPatti,
+    historyPatti,
+    countdownPatti,
+    settlingPatti,
+    revealingPatti,
+    revealedCardsPatti,
+    recentBetsPatti,
+    pattiResultModal,
+    closePattiResultModal,
+    placePattiBet,
+    triggerSettlePattiRound,
     // Shared user & app state
     leaderboard,
     wallet,

@@ -16,6 +16,7 @@ import Admin from './pages/Admin';
 import SupportPage from './pages/SupportPage';
 import History from './pages/History';
 import Dashboard from './pages/Dashboard';
+import DoublePatti from './pages/DoublePatti';
 
 import './index.css';
 import './styles/theme.css';
@@ -41,6 +42,11 @@ function App() {
             <Route path="/game" element={
               <ProtectedRoute>
                 <Home />
+              </ProtectedRoute>
+            } />
+            <Route path="/patti" element={
+              <ProtectedRoute>
+                <DoublePatti />
               </ProtectedRoute>
             } />
             <Route path="/profile" element={

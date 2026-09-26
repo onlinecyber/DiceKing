@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Gamepad2, Trophy, HeadphonesIcon,
-  Copy, Check, Gift, Sparkles, Clock
+  Copy, Check, Gift, Sparkles, Clock, Flame, Layers
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGame } from '../context/GameContext';
@@ -14,7 +14,7 @@ import FirstDepositModal from '../components/Common/FirstDepositModal';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { wallet, activeRound, countdown, activeRound1m, countdown1m, appSettings } = useGame();
+  const { wallet, activeRound, countdown, activeRound1m, countdown1m, activeRoundPatti, countdownPatti, appSettings } = useGame();
   const [copied, setCopied] = useState(false);
   const [showBonusModal, setShowBonusModal] = useState(false);
   const hasDeposited = (wallet?.totalDeposits && wallet.totalDeposits > 0) || profile?.firstDepositClaimed === true;
@@ -93,11 +93,108 @@ const Dashboard = () => {
 
       <div className="content-container" style={{ gap: '16px' }}>
 
-        {/* Quick Actions Grid (Clean 2x2 Layout) */}
+        {/* Quick Actions Section */}
         <div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px', marginBottom: '12px' }}>
-            QUICK ACTIONS
+            QUICK ACTIONS & LIVE GAMES
           </div>
+
+          {/* Featured Double Patti Action Card */}
+          <div
+            onClick={() => navigate('/patti')}
+            style={{
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(139, 92, 246, 0.22) 50%, rgba(11, 9, 20, 0.98) 100%)',
+              border: '1.5px solid rgba(245, 158, 11, 0.45)',
+              borderRadius: '18px',
+              padding: '16px 18px',
+              cursor: 'pointer',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 30px rgba(245, 158, 11, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '10px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.7)';
+              e.currentTarget.style.boxShadow = '0 10px 32px rgba(245, 158, 11, 0.35)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.45)';
+              e.currentTarget.style.boxShadow = '0 8px 30px rgba(245, 158, 11, 0.2)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 16px rgba(245, 158, 11, 0.4)',
+                flexShrink: 0
+              }}>
+                <Flame size={24} color="#000" />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                  <span style={{
+                    fontSize: '0.62rem',
+                    fontWeight: '900',
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    color: '#000',
+                    padding: '2px 7px',
+                    borderRadius: '5px'
+                  }}>
+                    DOUBLE PATTI
+                  </span>
+                  <span style={{ fontSize: '0.62rem', color: '#fbbf24', fontWeight: '800' }}>
+                    🔥 9X JACKPOT
+                  </span>
+                </div>
+                <div style={{ fontSize: '1rem', fontWeight: '900', color: '#fff' }}>
+                  1-Min Live Fast Round
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                  {activeRoundPatti ? `Round #${activeRoundPatti.roundNumber} • Match 2 cards to win` : 'Pick 2 numbers (0-9) • Every 60s'}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
+              <div style={{
+                background: 'rgba(245, 158, 11, 0.2)',
+                border: '1px solid rgba(245, 158, 11, 0.5)',
+                borderRadius: '8px',
+                padding: '3px 8px',
+                fontSize: '0.8rem',
+                fontWeight: '900',
+                color: '#fbbf24',
+                fontFamily: 'monospace'
+              }}>
+                ⏱️ {countdownPatti ?? 60}s
+              </div>
+              <div style={{
+                background: 'linear-gradient(135deg, var(--accent-gold), #d97706)',
+                color: '#000',
+                fontWeight: '900',
+                fontSize: '0.68rem',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 10px rgba(245, 158, 11, 0.3)'
+              }}>
+                PLAY →
+              </div>
+            </div>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             {quickActions.map((action) => {
               const Icon = action.icon;
