@@ -1538,8 +1538,9 @@ app.get('/api/getPattiState', async (req, res) => {
       currentActive = sorted[0];
 
       const endTimeMs = currentActive.endTime 
-        ? (currentActive.endTime.toMillis ? currentActive.endTime.toMillis() : (currentActive.endTime._seconds ? currentActive.endTime._seconds * 1000 : (currentActive.endTime.seconds ? currentActive.endTime.seconds * 1000 : now)))
-        : now;
+        ? (currentActive.endTime.toMillis ? currentActive.endTime.toMillis() : (currentActive.endTime._seconds ? currentActive.endTime._seconds * 1000 : (currentActive.endTime.seconds ? currentActive.endTime.seconds * 1000 : now + 60000)))
+        : now + 60000;
+      currentActive.endTimeMs = endTimeMs;
       remainingSeconds = Math.max(0, Math.floor((endTimeMs - now) / 1000));
     }
 

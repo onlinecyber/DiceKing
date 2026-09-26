@@ -628,10 +628,12 @@ export const GameProvider = ({ children }) => {
   // Safe helper to convert any timestamp format to milliseconds
   const getMillis = (timeVal) => {
     if (!timeVal) return Date.now() + 30000;
+    if (typeof timeVal === 'number') return timeVal;
+    if (typeof timeVal.endTimeMs === 'number') return timeVal.endTimeMs;
+    if (typeof timeVal._seconds === 'number') return timeVal._seconds * 1000;
+    if (typeof timeVal.seconds === 'number') return timeVal.seconds * 1000;
     if (typeof timeVal.toMillis === 'function') return timeVal.toMillis();
     if (typeof timeVal.toDate === 'function') return timeVal.toDate().getTime();
-    if (typeof timeVal.seconds === 'number') return timeVal.seconds * 1000;
-    if (typeof timeVal === 'number') return timeVal;
     if (typeof timeVal === 'string') return new Date(timeVal).getTime();
     if (timeVal instanceof Date) return timeVal.getTime();
     return Date.now() + 30000;
@@ -644,7 +646,7 @@ export const GameProvider = ({ children }) => {
     const tick = () => {
       // Use calibrated time (local time + server clock offset) to prevent false early triggers
       const now = Date.now() + serverTimeOffsetRef.current;
-      const endTime = getMillis(activeRound.endTime);
+      const endTime = activeRound.endTimeMs || getMillis(activeRound.endTime);
       const deltaSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
       
       setCountdown(deltaSeconds);
@@ -671,7 +673,7 @@ export const GameProvider = ({ children }) => {
 
     const tick1m = () => {
       const now = Date.now() + serverTimeOffsetRef.current;
-      const endTime = getMillis(activeRound1m.endTime);
+      const endTime = activeRound1m.endTimeMs || getMillis(activeRound1m.endTime);
       const deltaSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
       
       setCountdown1m(deltaSeconds);
@@ -692,11 +694,11 @@ export const GameProvider = ({ children }) => {
 
   // Double Patti 1-Minute Timer ticking interval
   useEffect(() => {
-    if (!activeRoundPatti || !activeRoundPatti.endTime) return;
+    if (!activeRoundPatti) return;
 
     const tickPatti = () => {
       const now = Date.now() + serverTimeOffsetRef.current;
-      const endTime = getMillis(activeRoundPatti.endTime);
+      const endTime = activeRoundPatti.endTimeMs || getMillis(activeRoundPatti.endTime);
       const deltaSeconds = Math.max(0, Math.floor((endTime - now) / 1000));
 
       setCountdownPatti(deltaSeconds);

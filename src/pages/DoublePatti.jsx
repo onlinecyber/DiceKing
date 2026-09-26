@@ -33,6 +33,19 @@ const DoublePatti = () => {
   const [activeTab, setActiveTab] = useState('history'); // 'history' | 'mybets' | 'rules'
   const [showRulesModal, setShowRulesModal] = useState(false);
 
+  // Smooth local 1-second countdown ticker
+  const [localSeconds, setLocalSeconds] = useState(countdownPatti);
+  useEffect(() => {
+    setLocalSeconds(countdownPatti);
+  }, [countdownPatti]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLocalSeconds(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const chips = [10, 20, 50, 100, 500, 1000];
 
   // Number selection handler (exactly 2 numbers from 0-9)
@@ -68,7 +81,7 @@ const DoublePatti = () => {
       showToast("Please select exactly 2 numbers (0-9).", "error");
       return;
     }
-    if (countdownPatti <= 2) {
+    if (localSeconds <= 2) {
       showToast("Betting closed for this round! Wait for next round.", "error");
       return;
     }
@@ -95,7 +108,7 @@ const DoublePatti = () => {
 
   // Active round display
   const roundNumber = activeRoundPatti ? activeRoundPatti.roundNumber : '---';
-  const isBettingLocked = countdownPatti <= 2 || settlingPatti || revealingPatti;
+  const isBettingLocked = localSeconds <= 2 || settlingPatti || revealingPatti;
 
   // Get last round result cards
   const latestCompleted = historyPatti.length > 0 ? historyPatti[0] : null;
@@ -213,7 +226,7 @@ const DoublePatti = () => {
                 color: isBettingLocked ? '#ef4444' : '#fbbf24',
                 letterSpacing: '1px'
               }}>
-                {String(Math.floor(countdownPatti / 60)).padStart(2, '0')}:{String(countdownPatti % 60).padStart(2, '0')}
+                {String(Math.floor(localSeconds / 60)).padStart(2, '0')}:{String(localSeconds % 60).padStart(2, '0')}
               </span>
             </div>
           </div>
