@@ -1521,6 +1521,65 @@ app.get('/api/testPatti', async (req, res) => {
   }
 });
 
+app.get('/api/getPattiState', async (req, res) => {
+  try {
+    const activeSnap = await db.collection('pattiRounds').where('status', '==', 'active').get();
+    let currentActive = null;
+    let remainingSeconds = 60;
+    const now = Date.now();
+
+    if (!activeSnap.empty) {
+      const sorted = activeSnap.docs
+        .map(d => {
+          const data = d.data();
+          return { id: d.id, ...data };
+        })
+        .sort((a, b) => (b.roundNumber || 0) - (a.roundNumber || 0));
+      currentActive = sorted[0];
+
+      const endTimeMs = currentActive.endTime 
+        ? (currentActive.endTime.toMillis ? currentActive.endTime.toMillis() : (currentActive.endTime._seconds ? currentActive.endTime._seconds * 1000 : (currentActive.endTime.seconds ? currentActive.endTime.seconds * 1000 : now)))
+        : now;
+      remainingSeconds = Math.max(0, Math.floor((endTimeMs - now) / 1000));
+    }
+
+    const recentSnap = await db.collection('pattiRounds').orderBy('createdAt', 'desc').limit(15).get();
+    const history = recentSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(r => r.status === 'completed');
+
+    res.json({
+      success: true,
+      activeRound: currentActive,
+      countdown: remainingSeconds,
+      history,
+      serverTime: now
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/getMyPattiBets', decodeToken, requireAuth, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const betsSnap = await db.collection('pattiBets')
+      .where('uid', '==', uid)
+      .limit(30)
+      .get();
+    const bets = betsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?._seconds ? a.createdAt._seconds * 1000 : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0));
+        const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?._seconds ? b.createdAt._seconds * 1000 : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0));
+        return tB - tA;
+      });
+    res.json({ success: true, bets });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Fallback Route
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });

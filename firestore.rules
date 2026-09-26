@@ -41,6 +41,17 @@ service cloud.firestore {
       allow write: if false; // Only Cloud Functions can create/update
     }
 
+    // Double Patti collections
+    match /pattiRounds/{roundId} {
+      allow read: if true; // Publicly readable
+      allow write: if false; // Only Cloud Functions / Backend can create/update
+    }
+
+    match /pattiBets/{betId} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow write: if false; // Only Cloud Functions can place bets securely
+    }
+
     // Bets collection
     match /bets/{betId} {
       allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());

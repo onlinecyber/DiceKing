@@ -715,6 +715,65 @@ export const GameProvider = ({ children }) => {
     return () => clearInterval(intervalId);
   }, [activeRoundPatti, settlingPatti, revealingPatti]);
 
+  // Hybrid State Sync: Polls backend /api/getPattiState every 4s to guarantee 100% reliable live state
+  useEffect(() => {
+    let isMounted = true;
+    const syncPatti = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/getPattiState`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.success && isMounted) {
+          if (data.activeRound) {
+            setActiveRoundPatti(data.activeRound);
+          }
+          if (typeof data.countdown === 'number') {
+            setCountdownPatti(data.countdown);
+          }
+          if (Array.isArray(data.history) && data.history.length > 0) {
+            setHistoryPatti(data.history);
+          }
+        }
+      } catch (e) {
+        // Fallback silently
+      }
+    };
+
+    syncPatti();
+    const interval = setInterval(syncPatti, 4000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Sync user's recent Patti bets via backend endpoint
+  useEffect(() => {
+    if (!currentUser) return;
+    let isMounted = true;
+
+    const fetchMyBets = async () => {
+      try {
+        const token = await currentUser.getIdToken();
+        const res = await fetch(`${BACKEND_URL}/api/getMyPattiBets`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.success && isMounted && Array.isArray(data.bets)) {
+          setRecentBetsPatti(data.bets);
+        }
+      } catch (e) {}
+    };
+
+    fetchMyBets();
+    const interval = setInterval(fetchMyBets, 5000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [currentUser]);
+
   // Admin Settings update helper
   const saveAppSettings = async (newSettings) => {
     try {
