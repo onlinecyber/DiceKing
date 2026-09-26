@@ -17,6 +17,7 @@ import SupportPage from './pages/SupportPage';
 import History from './pages/History';
 import Dashboard from './pages/Dashboard';
 import DoublePatti from './pages/DoublePatti';
+import DomainPricing from './pages/DomainPricing';
 
 import './index.css';
 import './styles/theme.css';
@@ -39,6 +40,11 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/domain" element={
+              <ProtectedRoute>
+                <DomainPricing />
+              </ProtectedRoute>
+            } />
             <Route path="/game" element={
               <ProtectedRoute>
                 <Home />
