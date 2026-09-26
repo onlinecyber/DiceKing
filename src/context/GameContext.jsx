@@ -576,7 +576,28 @@ export const GameProvider = ({ children }) => {
         );
       }
 
+      // If user did not place a bet in this round, do not show popup
       if (userBets.length === 0) return;
+
+      // If bets are still pending, wait 1s for backend transaction to settle fully
+      if (userBets.some(b => b.status === 'pending')) {
+        await new Promise(r => setTimeout(r, 1000));
+        try {
+          const token = await currentUser.getIdToken();
+          const res = await fetch(`${BACKEND_URL}/api/getMyPattiBets`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && Array.isArray(data.bets)) {
+              userBets = data.bets.filter(b => 
+                (b.roundId && b.roundId === completedRound.id) ||
+                (b.roundNumber && String(b.roundNumber) === String(completedRound.roundNumber))
+              );
+            }
+          }
+        } catch (e) {}
+      }
 
       let wonAmount = 0;
       let totalBetAmount = 0;
@@ -634,24 +655,6 @@ export const GameProvider = ({ children }) => {
       const allRounds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const completedRounds = allRounds.filter(r => r.status === 'completed');
       setHistoryPatti(completedRounds);
-
-      if (completedRounds.length > 0) {
-        const latestCompleted = completedRounds[0];
-        if (prevCompletedRoundIdPattiRef.current && prevCompletedRoundIdPattiRef.current !== latestCompleted.id) {
-          setRevealingPatti(true);
-          soundManager.playDiceRoll();
-          setRevealedCardsPatti({
-            card1: latestCompleted.card1 ?? 0,
-            card2: latestCompleted.card2 ?? 0
-          });
-
-          setTimeout(() => {
-            setRevealingPatti(false);
-            triggerPattiResultModal(latestCompleted);
-          }, 1500);
-        }
-        prevCompletedRoundIdPattiRef.current = latestCompleted.id;
-      }
     }, (error) => console.error("History Patti snapshot error:", error));
 
     return () => {
@@ -663,6 +666,32 @@ export const GameProvider = ({ children }) => {
       unsubscribeSettings();
     };
   }, [currentUser, gameMode]);
+
+  // Dedicated useEffect to catch completed Patti rounds from both Firestore and Polling Sync
+  useEffect(() => {
+    if (!historyPatti || historyPatti.length === 0) return;
+
+    const latestCompleted = historyPatti[0];
+    if (!prevCompletedRoundIdPattiRef.current) {
+      prevCompletedRoundIdPattiRef.current = latestCompleted.id;
+      return;
+    }
+
+    if (prevCompletedRoundIdPattiRef.current !== latestCompleted.id) {
+      prevCompletedRoundIdPattiRef.current = latestCompleted.id;
+      setRevealingPatti(true);
+      soundManager.playDiceRoll();
+      setRevealedCardsPatti({
+        card1: latestCompleted.card1 ?? 0,
+        card2: latestCompleted.card2 ?? 0
+      });
+
+      setTimeout(() => {
+        setRevealingPatti(false);
+        triggerPattiResultModal(latestCompleted);
+      }, 1500);
+    }
+  }, [historyPatti]);
 
   // 3. User Wallet & Active Bets Real-time Listeners
   useEffect(() => {
