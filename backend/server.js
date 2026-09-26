@@ -703,24 +703,26 @@ const settlePattiRound = async () => {
         .where('status', '==', 'pending');
       const betsSnap = await transaction.get(betsQuery);
 
-      // Generate all 45 unique unordered pairs of (0-9)
+      // Generate all 90 unique ordered pairs of (0-9) where c1 !== c2 (Exact position matching)
       const candidatePairs = [];
       for (let i = 0; i <= 9; i++) {
-        for (let j = i + 1; j <= 9; j++) {
-          candidatePairs.push([i, j]);
+        for (let j = 0; j <= 9; j++) {
+          if (i !== j) {
+            candidatePairs.push([i, j]);
+          }
         }
       }
 
       const payoutsByPair = {};
-      candidatePairs.forEach(([a, b]) => {
+      candidatePairs.forEach(([c1, c2]) => {
         let totalPayout = 0;
         betsSnap.docs.forEach(doc => {
           const bet = doc.data();
           const [n1, n2] = bet.numbers;
-          const matchA = n1 === a || n2 === a;
-          const matchB = n1 === b || n2 === b;
-          const bothMatch = matchA && matchB;
-          const singleMatch = (matchA || matchB) && !bothMatch;
+          const match1 = n1 === c1; // Position 1 match
+          const match2 = n2 === c2; // Position 2 match
+          const bothMatch = match1 && match2;
+          const singleMatch = (match1 || match2) && !bothMatch;
 
           let multiplier = 0;
           if (bothMatch) multiplier = 9.0;
@@ -730,20 +732,19 @@ const settlePattiRound = async () => {
             totalPayout += bet.amount * multiplier;
           }
         });
-        payoutsByPair[`${a}_${b}`] = totalPayout;
+        payoutsByPair[`${c1}_${c2}`] = totalPayout;
       });
 
       let minPayout = Infinity;
-      candidatePairs.forEach(([a, b]) => {
-        const p = payoutsByPair[`${a}_${b}`];
+      candidatePairs.forEach(([c1, c2]) => {
+        const p = payoutsByPair[`${c1}_${c2}`];
         if (p < minPayout) minPayout = p;
       });
 
-      const bestPairs = candidatePairs.filter(([a, b]) => payoutsByPair[`${a}_${b}`] === minPayout);
+      const bestPairs = candidatePairs.filter(([c1, c2]) => payoutsByPair[`${c1}_${c2}`] === minPayout);
       const chosenPair = bestPairs[Math.floor(Math.random() * bestPairs.length)];
-      const shuffle = Math.random() < 0.5;
-      const card1 = shuffle ? chosenPair[0] : chosenPair[1];
-      const card2 = shuffle ? chosenPair[1] : chosenPair[0];
+      const card1 = chosenPair[0];
+      const card2 = chosenPair[1];
       const winningNumbers = [card1, card2];
 
       const betsToUpdate = [];
@@ -753,10 +754,10 @@ const settlePattiRound = async () => {
       for (const doc of betsSnap.docs) {
         const bet = doc.data();
         const [n1, n2] = bet.numbers;
-        const matchCard1 = n1 === card1 || n2 === card1;
-        const matchCard2 = n1 === card2 || n2 === card2;
-        const bothMatch = matchCard1 && matchCard2;
-        const singleMatch = (matchCard1 || matchCard2) && !bothMatch;
+        const match1 = n1 === card1; // Position 1 match
+        const match2 = n2 === card2; // Position 2 match
+        const bothMatch = match1 && match2;
+        const singleMatch = (match1 || match2) && !bothMatch;
 
         let multiplier = 0;
         let matchCount = 0;

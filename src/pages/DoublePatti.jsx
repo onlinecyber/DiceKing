@@ -355,7 +355,7 @@ const DoublePatti = () => {
                 Pick 2 Lucky Numbers
               </div>
               <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                Select exactly 2 numbers from 0 to 9
+                1st pick = Patti 1 (Card 1), 2nd pick = Patti 2 (Card 2)
               </div>
             </div>
 
@@ -408,6 +408,7 @@ const DoublePatti = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '14px' }}>
             {Array.from({ length: 10 }, (_, i) => i).map((num) => {
               const isSelected = selectedNumbers.includes(num);
+              const orderIdx = selectedNumbers.indexOf(num);
               return (
                 <button
                   key={num}
@@ -417,18 +418,18 @@ const DoublePatti = () => {
                     aspectRatio: '1/1',
                     borderRadius: '14px',
                     border: isSelected
-                      ? '2px solid var(--accent-gold)'
+                      ? orderIdx === 0 ? '2px solid var(--accent-gold)' : '2px solid #d946ef'
                       : '1px solid rgba(255, 255, 255, 0.1)',
                     background: isSelected
-                      ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                      ? orderIdx === 0 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #d946ef, #a855f7)'
                       : 'rgba(255, 255, 255, 0.05)',
-                    color: isSelected ? '#000' : '#fff',
+                    color: isSelected ? '#fff' : '#fff',
                     fontSize: '1.25rem',
                     fontWeight: '900',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: isSelected ? '0 0 16px rgba(245, 158, 11, 0.4)' : 'none',
+                    boxShadow: isSelected ? (orderIdx === 0 ? '0 0 16px rgba(245, 158, 11, 0.4)' : '0 0 16px rgba(217, 70, 239, 0.4)') : 'none',
                     cursor: isBettingLocked ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s ease',
                     position: 'relative'
@@ -440,11 +441,15 @@ const DoublePatti = () => {
                       position: 'absolute',
                       top: '3px',
                       right: '3px',
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      background: '#000'
-                    }} />
+                      fontSize: '0.55rem',
+                      fontWeight: '800',
+                      background: 'rgba(0, 0, 0, 0.6)',
+                      color: '#fff',
+                      padding: '1px 4px',
+                      borderRadius: '4px'
+                    }}>
+                      P{orderIdx + 1}
+                    </div>
                   )}
                 </button>
               );
@@ -462,7 +467,7 @@ const DoublePatti = () => {
             border: '1px solid rgba(255, 255, 255, 0.08)'
           }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
-              Your Selected Numbers:
+              Your Selection:
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               {selectedNumbers.length === 0 ? (
@@ -474,16 +479,20 @@ const DoublePatti = () => {
                   <span
                     key={idx}
                     style={{
-                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                      color: '#000',
+                      background: idx === 0 
+                        ? 'linear-gradient(135deg, #f59e0b, #d97706)' 
+                        : 'linear-gradient(135deg, #d946ef, #a855f7)',
+                      color: '#fff',
                       fontWeight: '900',
-                      fontSize: '0.85rem',
-                      padding: '2px 10px',
+                      fontSize: '0.75rem',
+                      padding: '3px 8px',
                       borderRadius: '8px',
-                      boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)'
+                      boxShadow: idx === 0 
+                        ? '0 2px 8px rgba(245, 158, 11, 0.3)' 
+                        : '0 2px 8px rgba(217, 70, 239, 0.3)'
                     }}
                   >
-                    #{num}
+                    {idx === 0 ? `Patti 1: ${num}` : `Patti 2: ${num}`}
                   </span>
                 ))
               )}
@@ -958,19 +967,22 @@ const DoublePatti = () => {
 
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
               <p style={{ marginBottom: '8px' }}>
-                1. <strong>Select 2 numbers</strong> between 0 and 9 (e.g. 2 & 8).
+                1. <strong>Select 2 numbers in exact order:</strong> 1st pick is for Patti 1 (Card 1), 2nd pick is for Patti 2 (Card 2).
               </p>
               <p style={{ marginBottom: '8px' }}>
-                2. Every 60 seconds, <strong>2 winning cards</strong> are drawn automatically.
+                2. Every 60 seconds, <strong>2 winning cards (Patti 1 & Patti 2)</strong> are drawn automatically.
               </p>
               <p style={{ marginBottom: '8px' }}>
-                3. <strong>Jackpot (Both Match):</strong> If both numbers appear in the drawn cards, you win <strong>9X Payout</strong>!
+                3. <strong>Jackpot (Exact Order Both Match - 9X):</strong> Patti 1 matches your 1st pick AND Patti 2 matches your 2nd pick!
               </p>
               <p style={{ marginBottom: '8px' }}>
-                4. <strong>Safety Return (1 Match):</strong> If 1 number matches either card, you get a <strong>1.5X Payout</strong>!
+                4. <strong>Single Match (1 Position Match - 1.5X):</strong> Either Patti 1 matches your 1st pick OR Patti 2 matches your 2nd pick.
+              </p>
+              <p style={{ marginBottom: '8px' }}>
+                5. <em>Note:</em> Reverse order does NOT match (e.g. Bet 5,7 vs Result 7,5 is 0 match).
               </p>
               <p style={{ marginBottom: '12px' }}>
-                5. A 5% platform fee / GST is deducted from winning amounts.
+                6. A 5% platform fee / GST is deducted from winning amounts.
               </p>
             </div>
 
