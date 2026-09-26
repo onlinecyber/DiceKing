@@ -1103,58 +1103,53 @@ if (!process.env.VERCEL) {
     console.log(`DiceKing Express Backend running on port ${PORT}`);
   });
 
-  // Background Autonomous Game Loops: runs every 1 second to ensure 24/7 seamless round transitions
-  let gameLoopActive30s = false;
-  let gameLoopActive1m = false;
+  // Smart Autonomous Scheduler: ZERO continuous polling!
+  // Instead of querying Firestore every 1 second (which exhausts the 50,000 daily read limit),
+  // this scheduler queries only when a round is scheduled to finish (every 30s or 60s).
+  // Total reads per day: ~4,300 instead of 86,400! (95% reduction, stays well within free tier).
+  const runSchedulerForMode = async (mode) => {
+    const is1m = mode === '1m';
+    const defaultDuration = is1m ? 60000 : 30000;
+    let nextDelayMs = defaultDuration;
 
-  setInterval(async () => {
     try {
       const activeSnaps = await db.collection('gameRounds').where('status', '==', 'active').get();
-      const now = Timestamp.now();
-      const active30sDoc = activeSnaps.docs.find(d => (d.data().gameMode === '30s' || !d.data().gameMode));
-      const active1mDoc = activeSnaps.docs.find(d => d.data().gameMode === '1m');
+      const now = Date.now();
+      const roundDoc = activeSnaps.docs.find(d => is1m ? d.data().gameMode === '1m' : (d.data().gameMode === '30s' || !d.data().gameMode));
 
-      // 1. 30 Seconds Mode Loop
-      if (!gameLoopActive30s && !settlementLock30s) {
-        if (!active30sDoc) {
-          console.log("[AutonomousGameLoop 30s] No active round found. Bootstrapping...");
-          gameLoopActive30s = true;
-          await settleGameRound('30s');
-          gameLoopActive30s = false;
-        } else {
-          const activeRound = active30sDoc.data();
-          if (activeRound.endTime && now.toMillis() >= activeRound.endTime.toMillis()) {
-            console.log(`[AutonomousGameLoop 30s] Round #${activeRound.roundNumber} expired. Settling...`);
-            gameLoopActive30s = true;
-            await settleGameRound('30s');
-            gameLoopActive30s = false;
-          }
-        }
-      }
+      if (!roundDoc) {
+        console.log(`[AutonomousScheduler ${mode}] No active round. Bootstrapping initial round...`);
+        await settleGameRound(mode);
+        nextDelayMs = defaultDuration;
+      } else {
+        const roundData = roundDoc.data();
+        const endTimeMs = roundData.endTime 
+          ? (roundData.endTime.toMillis ? roundData.endTime.toMillis() : roundData.endTime.seconds * 1000) 
+          : now;
+        const remainingMs = endTimeMs - now;
 
-      // 2. 1 Minute (60 Seconds) Mode Loop
-      if (!gameLoopActive1m && !settlementLock1m) {
-        if (!active1mDoc) {
-          console.log("[AutonomousGameLoop 1m] No active round found. Bootstrapping...");
-          gameLoopActive1m = true;
-          await settleGameRound('1m');
-          gameLoopActive1m = false;
+        if (remainingMs <= 500) {
+          console.log(`[AutonomousScheduler ${mode}] Round #${roundData.roundNumber} expired. Settling...`);
+          await settleGameRound(mode);
+          nextDelayMs = defaultDuration;
         } else {
-          const activeRound1m = active1mDoc.data();
-          if (activeRound1m.endTime && now.toMillis() >= activeRound1m.endTime.toMillis()) {
-            console.log(`[AutonomousGameLoop 1m] Round #${activeRound1m.roundNumber} expired. Settling...`);
-            gameLoopActive1m = true;
-            await settleGameRound('1m');
-            gameLoopActive1m = false;
-          }
+          // Sleep until the exact round expiration (+ 500ms grace)
+          nextDelayMs = remainingMs + 500;
         }
       }
     } catch (err) {
-      console.error("[AutonomousGameLoop] Loop error:", err.message);
-      gameLoopActive30s = false;
-      gameLoopActive1m = false;
+      console.error(`[AutonomousScheduler ${mode}] Error:`, err.message);
+      // On error (e.g. quota limit, network blip), backoff safely for 15s instead of spamming!
+      nextDelayMs = 15000;
+    } finally {
+      const safeDelay = Math.max(1000, Math.min(nextDelayMs, defaultDuration + 2000));
+      setTimeout(() => runSchedulerForMode(mode), safeDelay);
     }
-  }, 1000);
+  };
+
+  // Launch initial scheduling
+  setTimeout(() => runSchedulerForMode('30s'), 2000);
+  setTimeout(() => runSchedulerForMode('1m'), 3000);
 
   // Keep-alive self ping every 10 minutes to prevent Render free instance spin-down
   setInterval(() => {

@@ -3,9 +3,9 @@ import { auth } from './config';
 const getBackendUrl = () => {
   if (import.meta.env.VITE_BACKEND_URL) return import.meta.env.VITE_BACKEND_URL;
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return window.location.origin;
+    return 'https://diceking-99si.onrender.com';
   }
-  return 'http://localhost:5000';
+  return 'http://localhost:5002';
 };
 
 export const BACKEND_URL = getBackendUrl();
