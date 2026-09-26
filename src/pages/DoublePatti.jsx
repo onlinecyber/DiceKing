@@ -77,6 +77,10 @@ const DoublePatti = () => {
 
   // Betting submission
   const handlePlaceBet = async () => {
+    if (hasPlacedBet) {
+      showToast("You have already placed a bet for this round! Wait for next round.", "error");
+      return;
+    }
     if (selectedNumbers.length !== 2) {
       showToast("Please select exactly 2 numbers (0-9).", "error");
       return;
@@ -121,6 +125,7 @@ const DoublePatti = () => {
     (b.roundId && activeRoundPatti?.id && b.roundId === activeRoundPatti.id) ||
     (b.roundNumber && activeRoundPatti?.roundNumber && String(b.roundNumber) === String(activeRoundPatti.roundNumber))
   );
+  const hasPlacedBet = currentRoundBets.length > 0;
 
   return (
     <div className="app-container" style={{ paddingBottom: '90px' }}>
@@ -428,7 +433,7 @@ const DoublePatti = () => {
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 onClick={handleRandomPick}
-                disabled={isBettingLocked}
+                disabled={isBettingLocked || hasPlacedBet}
                 style={{
                   background: 'rgba(255, 255, 255, 0.08)',
                   border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -440,7 +445,7 @@ const DoublePatti = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
-                  cursor: isBettingLocked ? 'not-allowed' : 'pointer'
+                  cursor: (isBettingLocked || hasPlacedBet) ? 'not-allowed' : 'pointer'
                 }}
               >
                 <Shuffle size={12} color="var(--accent-gold)" />
@@ -449,6 +454,7 @@ const DoublePatti = () => {
               {selectedNumbers.length > 0 && (
                 <button
                   onClick={handleClear}
+                  disabled={isBettingLocked || hasPlacedBet}
                   style={{
                     background: 'rgba(239, 68, 68, 0.15)',
                     border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -460,7 +466,7 @@ const DoublePatti = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    cursor: 'pointer'
+                    cursor: (isBettingLocked || hasPlacedBet) ? 'not-allowed' : 'pointer'
                   }}
                 >
                   <RotateCcw size={12} />
@@ -479,7 +485,7 @@ const DoublePatti = () => {
                 <button
                   key={num}
                   onClick={() => handleToggleNumber(num)}
-                  disabled={isBettingLocked}
+                  disabled={isBettingLocked || hasPlacedBet}
                   style={{
                     aspectRatio: '1/1',
                     borderRadius: '14px',
@@ -496,7 +502,7 @@ const DoublePatti = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     boxShadow: isSelected ? (orderIdx === 0 ? '0 0 16px rgba(245, 158, 11, 0.4)' : '0 0 16px rgba(217, 70, 239, 0.4)') : 'none',
-                    cursor: isBettingLocked ? 'not-allowed' : 'pointer',
+                    cursor: (isBettingLocked || hasPlacedBet) ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s ease',
                     position: 'relative'
                   }}
@@ -580,7 +586,7 @@ const DoublePatti = () => {
                 <button
                   key={amt}
                   onClick={() => setBetAmount(amt)}
-                  disabled={isBettingLocked}
+                  disabled={isBettingLocked || hasPlacedBet}
                   style={{
                     padding: '8px 2px',
                     borderRadius: '10px',
@@ -593,7 +599,7 @@ const DoublePatti = () => {
                     color: isSelected ? 'var(--accent-gold)' : 'var(--text-secondary)',
                     fontWeight: isSelected ? '800' : '600',
                     fontSize: '0.75rem',
-                    cursor: isBettingLocked ? 'not-allowed' : 'pointer',
+                    cursor: (isBettingLocked || hasPlacedBet) ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s ease'
                   }}
                 >
@@ -642,20 +648,20 @@ const DoublePatti = () => {
           {/* Place Bet Button */}
           <button
             onClick={handlePlaceBet}
-            disabled={selectedNumbers.length !== 2 || isBettingLocked || isSubmitting}
+            disabled={selectedNumbers.length !== 2 || isBettingLocked || isSubmitting || hasPlacedBet}
             style={{
               width: '100%',
               padding: '15px',
               borderRadius: '14px',
-              background: (selectedNumbers.length === 2 && !isBettingLocked)
+              background: (selectedNumbers.length === 2 && !isBettingLocked && !hasPlacedBet)
                 ? 'linear-gradient(135deg, #f59e0b, #d97706)'
                 : 'rgba(255, 255, 255, 0.08)',
               border: 'none',
-              color: (selectedNumbers.length === 2 && !isBettingLocked) ? '#000' : 'rgba(255, 255, 255, 0.3)',
+              color: (selectedNumbers.length === 2 && !isBettingLocked && !hasPlacedBet) ? '#000' : 'rgba(255, 255, 255, 0.3)',
               fontSize: '0.95rem',
               fontWeight: '900',
-              cursor: (selectedNumbers.length === 2 && !isBettingLocked && !isSubmitting) ? 'pointer' : 'not-allowed',
-              boxShadow: (selectedNumbers.length === 2 && !isBettingLocked) ? '0 4px 20px rgba(245, 158, 11, 0.4)' : 'none',
+              cursor: (selectedNumbers.length === 2 && !isBettingLocked && !isSubmitting && !hasPlacedBet) ? 'pointer' : 'not-allowed',
+              boxShadow: (selectedNumbers.length === 2 && !isBettingLocked && !hasPlacedBet) ? '0 4px 20px rgba(245, 158, 11, 0.4)' : 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -665,12 +671,14 @@ const DoublePatti = () => {
           >
             {isSubmitting ? (
               <span>Placing Bet...</span>
+            ) : hasPlacedBet ? (
+              <span>BET ALREADY PLACED (NEXT ROUND IN {localSeconds}S)</span>
             ) : isBettingLocked ? (
               <span>Betting Closed (Drawing Cards)</span>
             ) : selectedNumbers.length !== 2 ? (
               <span>Pick 2 Numbers to Place Bet</span>
             ) : (
-              <span>PLACE ₹{betAmount} BET ON [{selectedNumbers.join(', ')}]</span>
+              <span>PLACE BET (₹{betAmount})</span>
             )}
           </button>
         </GlassCard>

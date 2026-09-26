@@ -546,65 +546,81 @@ export const GameProvider = ({ children }) => {
       }
     }, (error) => console.error("Active Patti round snapshot error:", error));
 
-    const triggerPattiResultModal = (completedRound) => {
+    const triggerPattiResultModal = async (completedRound) => {
       if (!currentUser) return;
 
-      const userPattiBetQuery = query(
-        collection(db, 'pattiBets'),
-        where('uid', '==', currentUser.uid),
-        where('roundId', '==', completedRound.id)
-      );
+      let userBets = [];
 
-      onSnapshot(userPattiBetQuery, (betSnap) => {
-        if (betSnap.empty) return;
-
-        let wonAmount = 0;
-        let totalBetAmount = 0;
-        const userBets = [];
-
-        betSnap.forEach(bDoc => {
-          const b = bDoc.data();
-          totalBetAmount += (Number(b.amount) || 0);
-          if (b.status === 'won') {
-            wonAmount += (Number(b.payout) || 0);
-          }
-          userBets.push(b);
+      try {
+        const token = await currentUser.getIdToken();
+        const res = await fetch(`${BACKEND_URL}/api/getMyPattiBets`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        let date = new Date();
-        if (completedRound.createdAt) {
-          if (typeof completedRound.createdAt.toDate === 'function') {
-            date = completedRound.createdAt.toDate();
-          } else if (completedRound.createdAt.seconds || completedRound.createdAt._seconds) {
-            date = new Date((completedRound.createdAt.seconds || completedRound.createdAt._seconds) * 1000);
-          } else {
-            date = new Date(completedRound.createdAt);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && Array.isArray(data.bets)) {
+            userBets = data.bets.filter(b => 
+              (b.roundId && b.roundId === completedRound.id) ||
+              (b.roundNumber && String(b.roundNumber) === String(completedRound.roundNumber))
+            );
           }
         }
-        const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
-        const dateStr = formatter.format(date).replace(/-/g, '');
-        const period = `${dateStr}000${completedRound.roundNumber}`;
+      } catch (e) {
+        console.error("Error fetching patti bets for result modal:", e);
+      }
 
-        const isWin = wonAmount > 0;
-        if (isWin) {
-          soundManager.playWin();
-          showToast(`🎉 Double Patti: You Won ₹${wonAmount.toFixed(2)} in Round #${completedRound.roundNumber}!`, 'success');
+      if (userBets.length === 0) {
+        userBets = recentBetsPatti.filter(b => 
+          (b.roundId && b.roundId === completedRound.id) ||
+          (b.roundNumber && String(b.roundNumber) === String(completedRound.roundNumber))
+        );
+      }
+
+      if (userBets.length === 0) return;
+
+      let wonAmount = 0;
+      let totalBetAmount = 0;
+
+      userBets.forEach(b => {
+        totalBetAmount += (Number(b.amount) || 0);
+        if (b.status === 'won') {
+          wonAmount += (Number(b.payout) || 0);
+        }
+      });
+
+      let date = new Date();
+      if (completedRound.createdAt) {
+        if (typeof completedRound.createdAt.toDate === 'function') {
+          date = completedRound.createdAt.toDate();
+        } else if (completedRound.createdAt.seconds || completedRound.createdAt._seconds) {
+          date = new Date((completedRound.createdAt.seconds || completedRound.createdAt._seconds) * 1000);
         } else {
-          soundManager.playLoss();
-          showToast(`Double Patti: Round #${completedRound.roundNumber} completed: Cards [${completedRound.card1}, ${completedRound.card2}]`, 'info');
+          date = new Date(completedRound.createdAt);
         }
+      }
+      const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+      const dateStr = formatter.format(date).replace(/-/g, '');
+      const period = `${dateStr}000${completedRound.roundNumber}`;
 
-        setPattiResultModal({
-          type: isWin ? 'win' : 'loss',
-          period,
-          roundNumber: completedRound.roundNumber,
-          card1: completedRound.card1,
-          card2: completedRound.card2,
-          wonAmount,
-          totalBetAmount,
-          bets: userBets
-        });
-      }, { onlyOnce: true });
+      const isWin = wonAmount > 0;
+      if (isWin) {
+        soundManager.playWin();
+        showToast(`🎉 Double Patti: You Won ₹${wonAmount.toFixed(2)} in Round #${completedRound.roundNumber}!`, 'success');
+      } else {
+        soundManager.playLoss();
+        showToast(`Double Patti: Round #${completedRound.roundNumber} completed: Cards [${completedRound.card1}, ${completedRound.card2}]`, 'info');
+      }
+
+      setPattiResultModal({
+        type: isWin ? 'win' : 'loss',
+        period,
+        roundNumber: completedRound.roundNumber,
+        card1: completedRound.card1,
+        card2: completedRound.card2,
+        wonAmount,
+        totalBetAmount,
+        bets: userBets
+      });
     };
 
     // Listen to completed Patti rounds history (No composite index required!)
