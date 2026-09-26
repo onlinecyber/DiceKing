@@ -42,7 +42,8 @@ const Profile = () => {
   };
 
   const handleShare = () => {
-    const text = `🎲 Join DiceKing & Win Big! Use my code: ${profile?.referralCode} — Get bonus on first deposit!\nhttps://diceking-topaz.vercel.app`;
+    const appUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const text = `🎲 Join DiceKing & Win Big! Use my code: ${profile?.referralCode} — Get bonus on first deposit!\n${appUrl}`;
     if (navigator.share) navigator.share({ text });
     else { navigator.clipboard.writeText(text); }
   };

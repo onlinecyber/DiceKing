@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Gamepad2, Trophy, HeadphonesIcon,
-  Copy, Check, Gift, Sparkles, Clock, Flame, Layers, Globe
+  Copy, Check, Gift, Sparkles, Clock, Flame, Layers
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGame } from '../context/GameContext';
@@ -46,16 +46,6 @@ const Dashboard = () => {
 
   const quickActions = [
     {
-      id: 'domain_store',
-      icon: Globe,
-      label: 'Domain Pricing',
-      sublabel: '.IN at ₹865/yr • Instant Setup',
-      gradient: 'linear-gradient(135deg, #10b981, #059669)',
-      glow: 'rgba(16, 185, 129, 0.35)',
-      path: '/domain',
-      badge: '🌐 DOMAINS'
-    },
-    {
       id: 'play_30s',
       icon: Gamepad2,
       label: 'Dice 30s',
@@ -74,6 +64,16 @@ const Dashboard = () => {
       glow: 'rgba(6, 182, 212, 0.35)',
       path: '/game?mode=1m',
       badge: '⏱️ 1 MIN'
+    },
+    {
+      id: 'leaderboard',
+      icon: Trophy,
+      label: 'Leaderboard',
+      sublabel: 'Top winners today',
+      gradient: 'linear-gradient(135deg, #b45309, #d97706)',
+      glow: 'rgba(180, 83, 9, 0.3)',
+      path: '/leaderboard',
+      badge: null
     },
     {
       id: 'support',
