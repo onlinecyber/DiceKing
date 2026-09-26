@@ -81,8 +81,8 @@ const DoublePatti = () => {
       showToast("Please select exactly 2 numbers (0-9).", "error");
       return;
     }
-    if (localSeconds <= 2) {
-      showToast("Betting closed for this round! Wait for next round.", "error");
+    if (localSeconds <= 5) {
+      showToast("Betting closed for this round! Picks lock at 00:05 seconds.", "error");
       return;
     }
     if (!wallet || wallet.balance < betAmount) {
@@ -108,12 +108,19 @@ const DoublePatti = () => {
 
   // Active round display
   const roundNumber = activeRoundPatti ? activeRoundPatti.roundNumber : '---';
-  const isBettingLocked = localSeconds <= 2 || settlingPatti || revealingPatti;
+  const isBettingLocked = localSeconds <= 5 || settlingPatti || revealingPatti;
+  const isBlankPhase = localSeconds <= 5 && !revealingPatti;
 
-  // Get last round result cards
+  // Get last round result cards or blank state during lock phase
   const latestCompleted = historyPatti.length > 0 ? historyPatti[0] : null;
-  const displayedCard1 = revealingPatti ? revealedCardsPatti.card1 : (latestCompleted?.card1 ?? '?');
-  const displayedCard2 = revealingPatti ? revealedCardsPatti.card2 : (latestCompleted?.card2 ?? '?');
+  const displayedCard1 = revealingPatti ? revealedCardsPatti.card1 : (isBlankPhase ? '?' : (latestCompleted?.card1 ?? '?'));
+  const displayedCard2 = revealingPatti ? revealedCardsPatti.card2 : (isBlankPhase ? '?' : (latestCompleted?.card2 ?? '?'));
+
+  // Current active round bets placed by user
+  const currentRoundBets = recentBetsPatti.filter(b => 
+    (b.roundId && activeRoundPatti?.id && b.roundId === activeRoundPatti.id) ||
+    (b.roundNumber && activeRoundPatti?.roundNumber && String(b.roundNumber) === String(activeRoundPatti.roundNumber))
+  );
 
   return (
     <div className="app-container" style={{ paddingBottom: '90px' }}>
@@ -164,7 +171,7 @@ const DoublePatti = () => {
           </div>
 
           <button
-            onClick={() => setShowRulesModal(true)}
+            onClick={() => setShowRulesModal(false)}
             style={{
               background: 'rgba(245, 158, 11, 0.12)',
               border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -203,7 +210,7 @@ const DoublePatti = () => {
                 </span>
               </div>
               <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                {isBettingLocked ? 'Cards are revealing shortly...' : 'Picks lock at 00:02 seconds'}
+                {isBettingLocked ? '🔒 CARDS BLANK • REVEALING AT 00:00' : 'Picks lock at 00:05 seconds'}
               </div>
             </div>
 
@@ -244,13 +251,13 @@ const DoublePatti = () => {
         }}>
           <div style={{
             fontSize: '0.7rem',
-            color: 'var(--text-secondary)',
+            color: isBlankPhase ? '#ef4444' : 'var(--text-secondary)',
             fontWeight: '700',
             letterSpacing: '1px',
             textTransform: 'uppercase',
             marginBottom: '14px'
           }}>
-            {revealingPatti ? '✨ REVEALING WINNING PATTI CARDS ✨' : (latestCompleted ? `LAST ROUND #${latestCompleted.roundNumber} RESULT` : 'WINNING CARDS')}
+            {revealingPatti ? '✨ REVEALING WINNING PATTI CARDS ✨' : (isBlankPhase ? '🔒 CARDS ARE BLANK (REVEALING SOON)' : (latestCompleted ? `LAST ROUND #${latestCompleted.roundNumber} RESULT` : 'WINNING CARDS'))}
           </div>
 
           {/* Cards Stage Container */}
@@ -261,9 +268,15 @@ const DoublePatti = () => {
               width: '100px',
               height: '140px',
               borderRadius: '16px',
-              background: 'linear-gradient(145deg, #1e1b4b, #0f172a)',
-              border: '2px solid rgba(245, 158, 11, 0.6)',
-              boxShadow: '0 8px 24px rgba(245, 158, 11, 0.25), inset 0 0 16px rgba(245, 158, 11, 0.1)',
+              background: isBlankPhase 
+                ? 'linear-gradient(145deg, #1f1d2b, #0d0c14)' 
+                : 'linear-gradient(145deg, #1e1b4b, #0f172a)',
+              border: isBlankPhase 
+                ? '2px dashed rgba(239, 68, 68, 0.5)' 
+                : '2px solid rgba(245, 158, 11, 0.6)',
+              boxShadow: isBlankPhase 
+                ? '0 0 16px rgba(239, 68, 68, 0.15)' 
+                : '0 8px 24px rgba(245, 158, 11, 0.25), inset 0 0 16px rgba(245, 158, 11, 0.1)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -273,20 +286,20 @@ const DoublePatti = () => {
               transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
               position: 'relative'
             }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--accent-gold)', alignSelf: 'flex-start' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : 'var(--accent-gold)', alignSelf: 'flex-start' }}>
                 PATTI 1
               </div>
               <div style={{
                 fontSize: '2.8rem',
                 fontWeight: '900',
-                color: '#fff',
+                color: isBlankPhase ? 'rgba(255, 255, 255, 0.2)' : '#fff',
                 fontFamily: 'outfit, sans-serif',
-                textShadow: '0 0 12px rgba(245, 158, 11, 0.8)'
+                textShadow: isBlankPhase ? 'none' : '0 0 12px rgba(245, 158, 11, 0.8)'
               }}>
                 {displayedCard1}
               </div>
-              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--accent-gold)', alignSelf: 'flex-end' }}>
-                ♠️ 0-9
+              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : 'var(--accent-gold)', alignSelf: 'flex-end' }}>
+                {isBlankPhase ? 'BLANK' : '♠️ 0-9'}
               </div>
             </div>
 
@@ -312,9 +325,15 @@ const DoublePatti = () => {
               width: '100px',
               height: '140px',
               borderRadius: '16px',
-              background: 'linear-gradient(145deg, #1e1b4b, #0f172a)',
-              border: '2px solid rgba(217, 70, 239, 0.6)',
-              boxShadow: '0 8px 24px rgba(217, 70, 239, 0.25), inset 0 0 16px rgba(217, 70, 239, 0.1)',
+              background: isBlankPhase 
+                ? 'linear-gradient(145deg, #1f1d2b, #0d0c14)' 
+                : 'linear-gradient(145deg, #1e1b4b, #0f172a)',
+              border: isBlankPhase 
+                ? '2px dashed rgba(239, 68, 68, 0.5)' 
+                : '2px solid rgba(217, 70, 239, 0.6)',
+              boxShadow: isBlankPhase 
+                ? '0 0 16px rgba(239, 68, 68, 0.15)' 
+                : '0 8px 24px rgba(217, 70, 239, 0.25), inset 0 0 16px rgba(217, 70, 239, 0.1)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -324,28 +343,75 @@ const DoublePatti = () => {
               transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
               position: 'relative'
             }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#f472b6', alignSelf: 'flex-start' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : '#f472b6', alignSelf: 'flex-start' }}>
                 PATTI 2
               </div>
               <div style={{
                 fontSize: '2.8rem',
                 fontWeight: '900',
-                color: '#fff',
+                color: isBlankPhase ? 'rgba(255, 255, 255, 0.2)' : '#fff',
                 fontFamily: 'outfit, sans-serif',
-                textShadow: '0 0 12px rgba(217, 70, 239, 0.8)'
+                textShadow: isBlankPhase ? 'none' : '0 0 12px rgba(217, 70, 239, 0.8)'
               }}>
                 {displayedCard2}
               </div>
-              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#f472b6', alignSelf: 'flex-end' }}>
-                ♥️ 0-9
+              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : '#f472b6', alignSelf: 'flex-end' }}>
+                {isBlankPhase ? 'BLANK' : '♥️ 0-9'}
               </div>
             </div>
           </div>
 
           <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-            Drawn cards: exactly 2 distinct numbers every 60s
+            {isBlankPhase ? '🔒 Cards are blank for last 5s! Cards flip at 00:00' : 'Drawn cards: 2 distinct numbers every 60s'}
           </div>
         </GlassCard>
+
+        {/* Active Bet Placed Confirmation Indicator Banner */}
+        {currentRoundBets.length > 0 && (
+          <GlassCard style={{
+            padding: '12px 16px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(11, 9, 20, 0.95))',
+            border: '1px solid rgba(34, 197, 94, 0.5)',
+            boxShadow: '0 0 20px rgba(34, 197, 94, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CheckCircle size={16} color="#4ade80" />
+                <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#4ade80' }}>
+                  BET CONFIRMED (ROUND #{activeRoundPatti?.roundNumber})
+                </span>
+              </div>
+              <span style={{
+                fontSize: '0.65rem',
+                fontWeight: '800',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                background: 'rgba(34, 197, 94, 0.25)',
+                color: '#4ade80'
+              }}>
+                ACTIVE
+              </span>
+            </div>
+
+            {currentRoundBets.map((b, idx) => (
+              <div key={b.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Your Bet:</span>
+                  <span style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
+                    Patti 1: #{b.numbers[0]}
+                  </span>
+                  <span style={{ background: 'linear-gradient(135deg, #d946ef, #a855f7)', color: '#fff', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
+                    Patti 2: #{b.numbers[1]}
+                  </span>
+                </div>
+                <span style={{ fontWeight: '900', color: 'var(--accent-gold)' }}>
+                  ₹{b.amount}
+                </span>
+              </div>
+            ))}
+          </GlassCard>
+        )}
 
         {/* 10-Number Selection Board */}
         <GlassCard style={{ padding: '16px', borderRadius: '20px' }}>

@@ -130,6 +130,30 @@ class SoundManager {
     osc.stop(now + 0.05);
   }
 
+  // Play bet chip sound
+  playBet() {
+    if (this.muted) return;
+    this.initContext();
+    if (!this.audioCtx) return;
+
+    const now = this.audioCtx.currentTime;
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+
+    osc.connect(gain);
+    gain.connect(this.audioCtx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.1);
+  }
+
   // Play loss tone
   playLoss() {
     if (this.muted) return;

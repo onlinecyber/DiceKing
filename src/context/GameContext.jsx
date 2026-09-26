@@ -170,10 +170,23 @@ export const GameProvider = ({ children }) => {
   const placePattiBet = async (numbers, amount) => {
     if (!activeRoundPatti) throw new Error("No active Double Patti round available.");
 
+    soundManager.playBet();
+
     const prevBalance = wallet?.balance;
     if (wallet && typeof wallet.balance === 'number') {
       setWallet(prev => prev ? { ...prev, balance: Math.max(0, prev.balance - amount) } : prev);
     }
+
+    const optimisticBet = {
+      id: `temp_${Date.now()}`,
+      roundId: activeRoundPatti.id,
+      roundNumber: activeRoundPatti.roundNumber,
+      numbers,
+      amount: Number(amount),
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    setRecentBetsPatti(prev => [optimisticBet, ...prev]);
 
     try {
       const result = await placePattiBetFn({
@@ -182,12 +195,13 @@ export const GameProvider = ({ children }) => {
         amount: Number(amount),
         displayName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Player'
       });
-      showToast(`Patti bet placed on [${numbers.join(', ')}] with ₹${amount}!`, 'success');
+      showToast(`🎉 Bet of ₹${amount} placed on [Patti 1: #${numbers[0]}, Patti 2: #${numbers[1]}]!`, 'success');
       return result.data;
     } catch (error) {
       if (typeof prevBalance === 'number') {
         setWallet(prev => prev ? { ...prev, balance: prevBalance } : prev);
       }
+      setRecentBetsPatti(prev => prev.filter(b => b.id !== optimisticBet.id));
       showToast(error.message || "Failed to place Patti bet.", 'error');
       throw error;
     }
@@ -532,6 +546,67 @@ export const GameProvider = ({ children }) => {
       }
     }, (error) => console.error("Active Patti round snapshot error:", error));
 
+    const triggerPattiResultModal = (completedRound) => {
+      if (!currentUser) return;
+
+      const userPattiBetQuery = query(
+        collection(db, 'pattiBets'),
+        where('uid', '==', currentUser.uid),
+        where('roundId', '==', completedRound.id)
+      );
+
+      onSnapshot(userPattiBetQuery, (betSnap) => {
+        if (betSnap.empty) return;
+
+        let wonAmount = 0;
+        let totalBetAmount = 0;
+        const userBets = [];
+
+        betSnap.forEach(bDoc => {
+          const b = bDoc.data();
+          totalBetAmount += (Number(b.amount) || 0);
+          if (b.status === 'won') {
+            wonAmount += (Number(b.payout) || 0);
+          }
+          userBets.push(b);
+        });
+
+        let date = new Date();
+        if (completedRound.createdAt) {
+          if (typeof completedRound.createdAt.toDate === 'function') {
+            date = completedRound.createdAt.toDate();
+          } else if (completedRound.createdAt.seconds || completedRound.createdAt._seconds) {
+            date = new Date((completedRound.createdAt.seconds || completedRound.createdAt._seconds) * 1000);
+          } else {
+            date = new Date(completedRound.createdAt);
+          }
+        }
+        const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+        const dateStr = formatter.format(date).replace(/-/g, '');
+        const period = `${dateStr}000${completedRound.roundNumber}`;
+
+        const isWin = wonAmount > 0;
+        if (isWin) {
+          soundManager.playWin();
+          showToast(`🎉 Double Patti: You Won ₹${wonAmount.toFixed(2)} in Round #${completedRound.roundNumber}!`, 'success');
+        } else {
+          soundManager.playLoss();
+          showToast(`Double Patti: Round #${completedRound.roundNumber} completed: Cards [${completedRound.card1}, ${completedRound.card2}]`, 'info');
+        }
+
+        setPattiResultModal({
+          type: isWin ? 'win' : 'loss',
+          period,
+          roundNumber: completedRound.roundNumber,
+          card1: completedRound.card1,
+          card2: completedRound.card2,
+          wonAmount,
+          totalBetAmount,
+          bets: userBets
+        });
+      }, { onlyOnce: true });
+    };
+
     // Listen to completed Patti rounds history (No composite index required!)
     const historyPattiQuery = query(
       collection(db, 'pattiRounds'),
@@ -556,6 +631,7 @@ export const GameProvider = ({ children }) => {
 
           setTimeout(() => {
             setRevealingPatti(false);
+            triggerPattiResultModal(latestCompleted);
           }, 1500);
         }
         prevCompletedRoundIdPattiRef.current = latestCompleted.id;
