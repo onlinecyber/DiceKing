@@ -11,7 +11,6 @@ import {
   Gamepad2, 
   ArrowDownLeft, 
   ArrowUpRight, 
-  BookOpen,
   ArrowLeft,
   LayoutGrid,
   Calendar,
@@ -46,7 +45,6 @@ const History = () => {
     { id: 'games', label: 'My History', icon: Gamepad2 },
     { id: 'deposits', label: 'Recharges', icon: ArrowDownLeft },
     { id: 'withdrawals', label: 'Withdraws', icon: ArrowUpRight },
-    { id: 'ledger', label: 'Passbook', icon: BookOpen },
   ];
 
   // Sync tab with URL
@@ -78,8 +76,6 @@ const History = () => {
         collectionName = 'deposits';
       } else if (activeTab === 'withdrawals') {
         collectionName = 'withdrawals';
-      } else if (activeTab === 'ledger') {
-        collectionName = 'transactions';
       }
 
       const q = query(
@@ -89,13 +85,6 @@ const History = () => {
       
       const snap = await getDocs(q);
       let results = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      // Exclude game history from ledger/passbook
-      if (activeTab === 'ledger') {
-        results = results.filter(
-          item => !item.type?.startsWith('bet_') && item.type !== 'bet_place' && item.type !== 'bet_win'
-        );
-      }
       
       // Sort in memory to avoid missing index errors
       const sorted = results.sort((a, b) => {
@@ -357,38 +346,20 @@ const History = () => {
                 ))
               )}
 
-              {/* RENDER GAMES (My History) & PASSBOOK (Ledger) */}
-              {(activeTab === 'games' || activeTab === 'ledger') && data.map((item) => {
-                let title = '';
-                let subtitle = '';
-                let badgeText = '';
-                let badgeColor = '';
-                let amountText = '';
-                let amountColor = '';
+              {/* RENDER GAMES (My History) */}
+              {activeTab === 'games' && data.map((item) => {
+                const title = `Round #${item.roundNumber}`;
+                const subtitle = `Bet: ${item.type === 'exact' ? `Exact ${item.exactValue}` : item.type?.toUpperCase()}`;
+                const badgeText = item.status;
+                const badgeColor = item.status === 'won' ? 'var(--success-emerald)' : item.status === 'pending' ? 'var(--accent-gold)' : 'var(--danger-red)';
+                const amountText = item.status === 'won' ? `+₹${item.payout?.toFixed(2)}` : `-₹${item.amount?.toFixed(2)}`;
+                const amountColor = item.status === 'won' ? 'var(--success-emerald)' : 'var(--danger-red)';
+                
                 let detailText = '';
-
-                if (activeTab === 'games') {
-                  title = `Round #${item.roundNumber}`;
-                  subtitle = `Bet: ${item.type === 'exact' ? `Exact ${item.exactValue}` : item.type?.toUpperCase()}`;
-                  badgeText = item.status;
-                  badgeColor = item.status === 'won' ? 'var(--success-emerald)' : item.status === 'pending' ? 'var(--accent-gold)' : 'var(--danger-red)';
-                  amountText = item.status === 'won' ? `+₹${item.payout?.toFixed(2)}` : `-₹${item.amount?.toFixed(2)}`;
-                  amountColor = item.status === 'won' ? 'var(--success-emerald)' : 'var(--danger-red)';
-                  
-                  if (item.status === 'lost') {
-                    detailText = `Lost ₹${item.amount?.toFixed(2)}`;
-                  } else if (item.status === 'won') {
-                    detailText = `Won! Gross payout credited.`;
-                  }
-                } else if (activeTab === 'ledger') {
-                  const isPositive = item.amount > 0;
-                  title = item.description || 'Transaction Log';
-                  subtitle = `Ref: ${(item.referenceId || item.id || '').slice(-8).toUpperCase()}`;
-                  badgeText = item.status || 'success';
-                  badgeColor = 'var(--success-emerald)';
-                  amountText = `${isPositive ? '+' : ''}₹${Number(item.amount || 0).toFixed(2)}`;
-                  amountColor = isPositive ? 'var(--success-emerald)' : 'var(--danger-red)';
-                  detailText = `Category: ${item.type || 'Other'}`;
+                if (item.status === 'lost') {
+                  detailText = `Lost ₹${item.amount?.toFixed(2)}`;
+                } else if (item.status === 'won') {
+                  detailText = `Won! Gross payout credited.`;
                 }
 
                 return (
