@@ -373,33 +373,6 @@ const DoublePatti = () => {
 
         </GlassCard>
 
-        {/* Active Bet Placed Confirmation Indicator Banner */}
-        {currentRoundBets.length > 0 && (
-          <GlassCard style={{
-            padding: '10px 14px',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(11, 9, 20, 0.95))',
-            border: '1px solid rgba(34, 197, 94, 0.5)',
-            boxShadow: '0 0 16px rgba(34, 197, 94, 0.2)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <CheckCircle size={15} color="#4ade80" />
-                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#4ade80' }}>
-                  BET CONFIRMED (ROUND #{roundNumber})
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {currentRoundBets.map((b, idx) => (
-                  <span key={idx} style={{ fontSize: '0.72rem', fontWeight: '900', color: 'var(--accent-gold)' }}>
-                    P1: #{b.numbers[0]} & P2: #{b.numbers[1]} (₹{b.amount})
-                  </span>
-                ))}
-              </div>
-            </div>
-          </GlassCard>
-        )}
-
         {/* Unified Betting Control Board */}
         <GlassCard style={{ padding: '14px', borderRadius: '18px' }}>
           
