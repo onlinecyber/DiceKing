@@ -552,29 +552,17 @@ export const GameProvider = ({ children }) => {
 
       let userBets = [];
 
-      try {
-        // 1. Primary lookup by roundId in Firestore
-        const qByRoundId = query(
-          collection(db, 'pattiBets'),
-          where('uid', '==', currentUser.uid),
-          where('roundId', '==', completedRound.id)
+      // 1. First check local recentBetsPatti state (no Firestore index needed)
+      if (recentBetsPatti && recentBetsPatti.length > 0) {
+        userBets = recentBetsPatti.filter(b => 
+          (b.roundId && b.roundId === completedRound.id) ||
+          (b.roundNumber && String(b.roundNumber) === String(completedRound.roundNumber))
         );
-        const snap = await getDocs(qByRoundId);
-        userBets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
 
-        // 2. Fallback lookup by roundNumber if roundId doc was empty
-        if (userBets.length === 0 && completedRound.roundNumber) {
-          const qByRoundNum = query(
-            collection(db, 'pattiBets'),
-            where('uid', '==', currentUser.uid),
-            where('roundNumber', '==', Number(completedRound.roundNumber))
-          );
-          const snapNum = await getDocs(qByRoundNum);
-          userBets = snapNum.docs.map(d => ({ id: d.id, ...d.data() }));
-        }
-
-        // 3. Fallback to API call if Firestore direct queries return empty
-        if (userBets.length === 0) {
+      // 2. Fallback to API if recentBetsPatti had no matches
+      if (userBets.length === 0) {
+        try {
           const token = await currentUser.getIdToken();
           const res = await fetch(`${BACKEND_URL}/api/getMyPattiBets`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -588,34 +576,30 @@ export const GameProvider = ({ children }) => {
               );
             }
           }
+        } catch (e) {
+          console.error("Error fetching patti bets for result modal:", e);
         }
-      } catch (e) {
-        console.error("Error fetching patti bets for result modal:", e);
-      }
-
-      // 4. Fallback to recentBetsPatti local state
-      if (userBets.length === 0) {
-        userBets = recentBetsPatti.filter(b => 
-          (b.roundId && b.roundId === completedRound.id) ||
-          (b.roundNumber && String(b.roundNumber) === String(completedRound.roundNumber))
-        );
       }
 
       // If user did not place any bet in this round, do not show popup
       if (userBets.length === 0) return;
 
-      // If any bets are still 'pending' (backend settlement transaction in progress), wait 800ms and re-fetch
+      // 3. If bets are still pending, wait 800ms and re-fetch via API
       if (userBets.some(b => b.status === 'pending')) {
         await new Promise(r => setTimeout(r, 800));
         try {
-          const qByRoundId = query(
-            collection(db, 'pattiBets'),
-            where('uid', '==', currentUser.uid),
-            where('roundId', '==', completedRound.id)
-          );
-          const snapRetry = await getDocs(qByRoundId);
-          if (!snapRetry.empty) {
-            userBets = snapRetry.docs.map(d => ({ id: d.id, ...d.data() }));
+          const token = await currentUser.getIdToken();
+          const res = await fetch(`${BACKEND_URL}/api/getMyPattiBets`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && Array.isArray(data.bets)) {
+              userBets = data.bets.filter(b => 
+                (b.roundId && b.roundId === completedRound.id) ||
+                (b.roundNumber && String(b.roundNumber) === String(completedRound.roundNumber))
+              );
+            }
           }
         } catch (e) {}
       }
