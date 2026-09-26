@@ -113,12 +113,18 @@ const DoublePatti = () => {
     setIsSubmitting(true);
     try {
       await placePattiBet(selectedNumbers, betAmount);
+      setSelectedNumbers([]);
     } catch (err) {
       // Toast is handled in context
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Auto clear selection when new round starts
+  useEffect(() => {
+    setSelectedNumbers([]);
+  }, [activeRoundPatti?.roundNumber]);
 
   // Active round display parameters
   const roundNumber = activeRoundPatti ? activeRoundPatti.roundNumber : '---';
