@@ -108,6 +108,7 @@ export const GameProvider = ({ children }) => {
   const settleRound1mFn = (data) => callApi('settleRound1m', data);
   const submitDepositFn = (data) => callApi('submitDepositRequest', data);
   const submitWithdrawalFn = (data) => callApi('submitWithdrawalRequest', data);
+  const bindPayoutAccountFn = (data) => callApi('bindPayoutAccount', data);
 
   // Place Bet wrapper (Instant Optimistic Feedback)
   const placeBet = async (type, exactValue, amount) => {
@@ -239,6 +240,18 @@ export const GameProvider = ({ children }) => {
       return result.data;
     } catch (error) {
       showToast(error.message || "Withdrawal request failed.", "error");
+      throw error;
+    }
+  };
+
+  // Bind Payout Account (Permanent lock with duplicate check across accounts)
+  const bindPayoutAccount = async (payoutData) => {
+    try {
+      const result = await bindPayoutAccountFn(payoutData);
+      showToast("Payout details bound permanently!", "success");
+      return result.data;
+    } catch (error) {
+      showToast(error.message || "Failed to bind payout details.", "error");
       throw error;
     }
   };
@@ -593,6 +606,7 @@ export const GameProvider = ({ children }) => {
     placeBet,
     requestDeposit,
     requestWithdrawal,
+    bindPayoutAccount,
     triggerSettleRound: gameMode === '1m' ? triggerSettleRound1m : triggerSettleRound,
     showToast,
     saveAppSettings,

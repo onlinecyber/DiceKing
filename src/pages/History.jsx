@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   collection, 
   query, 
@@ -12,21 +12,35 @@ import {
   ArrowDownLeft, 
   ArrowUpRight, 
   BookOpen,
-  ArrowLeft
+  ArrowLeft,
+  LayoutGrid,
+  Calendar,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase/config';
 import GlassCard from '../components/Common/GlassCard';
 import Navbar from '../components/Common/Navbar';
 import BottomNav from '../components/Common/BottomNav';
+import { WithdrawalHistoryCard, DepositHistoryCard, formatHistoryDateTime } from '../components/Common/HistoryCards';
+
+const depositChannels = ['All', 'ArUpi Pay', 'UPI x QR', 'WinPay', 'PhonePe'];
 
 const History = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'games';
+
   const { currentUser } = useAuth();
   
-  const [activeTab, setActiveTab] = useState('games');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
+
+  // Deposit filters (matching Screenshot 2)
+  const [depositChannel, setDepositChannel] = useState('All');
+  const [depositStatus, setDepositStatus] = useState('All');
+  const [depositDate, setDepositDate] = useState('');
 
   const tabs = [
     { id: 'games', label: 'My History', icon: Gamepad2 },
@@ -34,6 +48,19 @@ const History = () => {
     { id: 'withdrawals', label: 'Withdraws', icon: ArrowUpRight },
     { id: 'ledger', label: 'Passbook', icon: BookOpen },
   ];
+
+  // Sync tab with URL
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    setSearchParams({ tab: newTab });
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -85,11 +112,35 @@ const History = () => {
     }
   };
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return 'Just Now';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  // Filter deposits based on channel, status, and date (Screenshot 2 functionality)
+  const filteredDeposits = data.filter((item) => {
+    if (activeTab !== 'deposits') return true;
+
+    // Channel filter
+    if (depositChannel !== 'All') {
+      const ch = (item.paymentMethod || '').toLowerCase();
+      if (!ch.includes(depositChannel.toLowerCase())) return false;
+    }
+
+    // Status filter
+    if (depositStatus !== 'All') {
+      const isApproved = item.status === 'approved' || item.status === 'completed' || item.status === 'success';
+      const isPending = item.status === 'pending';
+      const isFailed = item.status === 'rejected' || item.status === 'failed';
+
+      if (depositStatus === 'Complete' && !isApproved) return false;
+      if (depositStatus === 'Pending' && !isPending) return false;
+      if (depositStatus === 'Failed' && !isFailed) return false;
+    }
+
+    // Date filter (YYYY-MM-DD)
+    if (depositDate) {
+      const itemDateStr = formatHistoryDateTime(item.createdAt).split(' ')[0];
+      if (itemDateStr !== depositDate) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="app-container">
@@ -98,9 +149,30 @@ const History = () => {
       <div className="content-container">
         
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <HistoryIcon size={20} color="var(--accent-gold)" />
-          <h2 style={{ fontSize: '1.2rem', fontWeight: '800' }}>Transaction & Game Logs</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <HistoryIcon size={20} color="var(--accent-gold)" />
+            <h2 style={{ fontSize: '1.15rem', fontWeight: '800', margin: 0 }}>
+              {activeTab === 'deposits' ? 'Deposit history' : activeTab === 'withdrawals' ? 'Withdrawal history' : 'Transaction Logs'}
+            </h2>
+          </div>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--card-border)',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <ArrowLeft size={14} /> Back
+          </button>
         </div>
 
         {/* Tab Switcher */}
@@ -111,7 +183,7 @@ const History = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 style={{
                   flex: 1,
                   padding: '10px 4px',
@@ -120,7 +192,7 @@ const History = () => {
                   borderBottom: isSelected ? '2px solid var(--accent-gold)' : '2px solid transparent',
                   color: isSelected ? 'var(--accent-gold)' : 'var(--text-secondary)',
                   fontWeight: isSelected ? '700' : '500',
-                  fontSize: '0.75rem',
+                  fontSize: '0.72rem',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -137,8 +209,123 @@ const History = () => {
           })}
         </GlassCard>
 
+        {/* ============================================================== */}
+        {/* DEPOSIT HISTORY FILTERS (Screenshot 2 Match)                   */}
+        {/* ============================================================== */}
+        {activeTab === 'deposits' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Scrollable Channel Chips */}
+            <div style={{
+              display: 'flex',
+              gap: '6px',
+              overflowX: 'auto',
+              paddingBottom: '2px',
+              scrollbarWidth: 'none',
+            }}>
+              {depositChannels.map((ch) => {
+                const isSelected = depositChannel === ch;
+                return (
+                  <button
+                    key={ch}
+                    onClick={() => setDepositChannel(ch)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: isSelected ? '#2563eb' : 'rgba(255, 255, 255, 0.05)',
+                      color: isSelected ? '#ffffff' : '#94a3b8',
+                      fontWeight: isSelected ? '700' : '500',
+                      fontSize: '0.76rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {ch === 'All' && <LayoutGrid size={13} />}
+                    {ch}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Dropdown Filters Row: Status + Date */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {/* Status Dropdown */}
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={depositStatus}
+                  onChange={(e) => setDepositStatus(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: '#1a233a',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    color: '#cbd5e1',
+                    fontSize: '0.78rem',
+                    fontWeight: '600',
+                    outline: 'none',
+                    appearance: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="All">All Status</option>
+                  <option value="Complete">Complete</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Failed">Failed</option>
+                </select>
+                <ChevronDown size={14} color="#94a3b8" style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
+
+              {/* Date Input / Filter */}
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="date"
+                  value={depositDate}
+                  onChange={(e) => setDepositDate(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    background: '#1a233a',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    color: depositDate ? '#ffffff' : '#94a3b8',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {depositDate && (
+                  <button
+                    onClick={() => setDepositDate('')}
+                    style={{
+                      position: 'absolute',
+                      right: '26px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ef4444',
+                      fontSize: '0.7rem',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* List Content */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '2px' }}>
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {[1, 2, 3].map(i => (
@@ -147,16 +334,31 @@ const History = () => {
                 </GlassCard>
               ))}
             </div>
-          ) : data.length === 0 ? (
+          ) : (activeTab === 'deposits' ? filteredDeposits : data).length === 0 ? (
             <GlassCard style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📜</div>
+              <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>📜</div>
               <span style={{ fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>
                 No records found in this category
               </span>
             </GlassCard>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '520px', overflowY: 'auto', paddingBottom: '16px' }}>
-              {data.map((item) => {
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '560px', overflowY: 'auto', paddingBottom: '16px' }}>
+              {/* RENDER DEPOSITS (Screenshot 2 Match) */}
+              {activeTab === 'deposits' && (
+                filteredDeposits.map((item) => (
+                  <DepositHistoryCard key={item.id} item={item} />
+                ))
+              )}
+
+              {/* RENDER WITHDRAWALS (Screenshot 1 Match) */}
+              {activeTab === 'withdrawals' && (
+                data.map((item) => (
+                  <WithdrawalHistoryCard key={item.id} item={item} />
+                ))
+              )}
+
+              {/* RENDER GAMES (My History) & PASSBOOK (Ledger) */}
+              {(activeTab === 'games' || activeTab === 'ledger') && data.map((item) => {
                 let title = '';
                 let subtitle = '';
                 let badgeText = '';
@@ -167,43 +369,24 @@ const History = () => {
 
                 if (activeTab === 'games') {
                   title = `Round #${item.roundNumber}`;
-                  subtitle = `Bet Type: ${item.type === 'exact' ? `Exact ${item.exactValue}` : item.type.toUpperCase()}`;
+                  subtitle = `Bet: ${item.type === 'exact' ? `Exact ${item.exactValue}` : item.type?.toUpperCase()}`;
                   badgeText = item.status;
                   badgeColor = item.status === 'won' ? 'var(--success-emerald)' : item.status === 'pending' ? 'var(--accent-gold)' : 'var(--danger-red)';
-                  amountText = item.status === 'won' ? `+₹${item.payout.toFixed(2)}` : `-₹${item.amount.toFixed(2)}`;
+                  amountText = item.status === 'won' ? `+₹${item.payout?.toFixed(2)}` : `-₹${item.amount?.toFixed(2)}`;
                   amountColor = item.status === 'won' ? 'var(--success-emerald)' : 'var(--danger-red)';
                   
                   if (item.status === 'lost') {
-                    detailText = `Lost ₹${item.amount.toFixed(2)}`;
+                    detailText = `Lost ₹${item.amount?.toFixed(2)}`;
                   } else if (item.status === 'won') {
-                    detailText = `Won! Gross return, 5% GST deducted.`;
-                  }
-                } else if (activeTab === 'deposits') {
-                  title = `Deposit Recharge`;
-                  subtitle = `Ref ID: ${item.transactionReference || 'N/A'}`;
-                  badgeText = item.status;
-                  badgeColor = item.status === 'approved' ? 'var(--success-emerald)' : item.status === 'pending' ? 'var(--accent-gold)' : 'var(--danger-red)';
-                  amountText = `₹${item.amount.toFixed(2)}`;
-                  amountColor = 'var(--text-primary)';
-                  detailText = `Channel: ${item.paymentMethod || 'UPI'}`;
-                } else if (activeTab === 'withdrawals') {
-                  title = `Payout Request`;
-                  subtitle = `Method: ${item.paymentMethod || 'UPI Payout'}`;
-                  badgeText = item.status;
-                  badgeColor = item.status === 'approved' ? 'var(--success-emerald)' : item.status === 'pending' ? 'var(--accent-gold)' : 'var(--danger-red)';
-                  amountText = `₹${item.amount.toFixed(2)}`;
-                  amountColor = 'var(--danger-red)';
-                  detailText = `Payout Details: ${item.walletAddress || 'N/A'}`;
-                  if (item.status === 'rejected' && item.rejectReason) {
-                    detailText += ` | Reject Reason: ${item.rejectReason}`;
+                    detailText = `Won! Gross payout credited.`;
                   }
                 } else if (activeTab === 'ledger') {
                   const isPositive = item.amount > 0;
                   title = item.description || 'Transaction Log';
-                  subtitle = `Ref: ${item.referenceId?.slice(-8).toUpperCase() || 'N/A'}`;
+                  subtitle = `Ref: ${(item.referenceId || item.id || '').slice(-8).toUpperCase()}`;
                   badgeText = item.status || 'success';
                   badgeColor = 'var(--success-emerald)';
-                  amountText = `${isPositive ? '+' : ''}₹${item.amount.toFixed(2)}`;
+                  amountText = `${isPositive ? '+' : ''}₹${Number(item.amount || 0).toFixed(2)}`;
                   amountColor = isPositive ? 'var(--success-emerald)' : 'var(--danger-red)';
                   detailText = `Category: ${item.type || 'Other'}`;
                 }
@@ -251,7 +434,7 @@ const History = () => {
                         {detailText}
                       </span>
                       <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                        {formatDate(item.createdAt)}
+                        {formatHistoryDateTime(item.createdAt)}
                       </span>
                     </div>
                   </GlassCard>

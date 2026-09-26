@@ -560,6 +560,97 @@ const settleRoundAndStartNew_1m = async (data, context) => {
   return settleGameRound('1m');
 };
 
+const generateOrderNumber = (prefix = 'WD') => {
+  const now = new Date();
+  const pad = (n, len = 2) => String(n).padStart(len, '0');
+  const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const randomPart = Math.random().toString(16).substring(2, 10);
+  return `${prefix}${datePart}${randomPart}`;
+};
+
+const bindPayoutAccount = async (data, context) => {
+  const uid = context.auth.uid;
+  const { method, upiId, upiName, accountNumber, ifsc, bankName, holderName } = data;
+
+  if (!method || (method !== 'upi' && method !== 'bank')) {
+    throw new HttpsError('invalid-argument', 'Invalid payout method selected.');
+  }
+
+  const userRef = db.collection('users').doc(uid);
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) {
+    throw new HttpsError('not-found', 'User profile not found.');
+  }
+  const userData = userSnap.data();
+
+  if (userData.boundPayout) {
+    throw new HttpsError('failed-precondition', 'Your payout account is already permanently bound. Contact Customer Support to change it.');
+  }
+
+  if (method === 'upi') {
+    if (!upiId || !upiName) {
+      throw new HttpsError('invalid-argument', 'UPI ID and Account Name are required.');
+    }
+    const cleanUpi = upiId.trim().toLowerCase();
+    const cleanUpiName = upiName.trim();
+
+    // Check if another user already has this UPI ID
+    const existingSnap = await db.collection('users').where('boundUpiId', '==', cleanUpi).get();
+    const isTaken = existingSnap.docs.some(d => d.id !== uid);
+    if (isTaken) {
+      throw new HttpsError('already-exists', 'This UPI ID is already linked to another account. You cannot link the same UPI across multiple accounts.');
+    }
+
+    const boundPayout = {
+      method: 'upi',
+      upiId: cleanUpi,
+      upiName: cleanUpiName,
+      boundAt: FieldValue.serverTimestamp()
+    };
+
+    await userRef.update({
+      boundPayout,
+      boundUpiId: cleanUpi,
+      boundBankAcc: null
+    });
+
+    return { success: true, message: 'UPI ID bound permanently.', boundPayout };
+  } else {
+    // Bank method
+    if (!accountNumber || !ifsc || !bankName || !holderName) {
+      throw new HttpsError('invalid-argument', 'Account Number, IFSC Code, Bank Name, and Account Holder Name are all required.');
+    }
+    const cleanBankAcc = accountNumber.trim().replace(/\s+/g, '');
+    const cleanIfsc = ifsc.trim().toUpperCase();
+    const cleanBankName = bankName.trim();
+    const cleanHolderName = holderName.trim();
+
+    // Check if another user already has this Bank Account
+    const existingSnap = await db.collection('users').where('boundBankAcc', '==', cleanBankAcc).get();
+    const isTaken = existingSnap.docs.some(d => d.id !== uid);
+    if (isTaken) {
+      throw new HttpsError('already-exists', 'This Bank Account is already linked to another account. You cannot link the same Bank Account across multiple accounts.');
+    }
+
+    const boundPayout = {
+      method: 'bank',
+      accountNumber: cleanBankAcc,
+      ifsc: cleanIfsc,
+      bankName: cleanBankName,
+      holderName: cleanHolderName,
+      boundAt: FieldValue.serverTimestamp()
+    };
+
+    await userRef.update({
+      boundPayout,
+      boundBankAcc: cleanBankAcc,
+      boundUpiId: null
+    });
+
+    return { success: true, message: 'Bank account bound permanently.', boundPayout };
+  }
+};
+
 const submitDepositRequest = async (data, context) => {
   const uid = context.auth.uid;
   const { amount, paymentMethod, transactionReference } = data;
@@ -574,9 +665,11 @@ const submitDepositRequest = async (data, context) => {
   }
   const user = userSnap.data();
 
+  const orderNumber = generateOrderNumber('RC');
   const depositRef = db.collection('deposits').doc();
   const depositData = {
     id: depositRef.id,
+    orderNumber,
     uid,
     displayName: user.displayName,
     email: user.email,
@@ -584,13 +677,14 @@ const submitDepositRequest = async (data, context) => {
     status: 'pending',
     paymentMethod,
     transactionReference,
+    utr: transactionReference,
     createdAt: FieldValue.serverTimestamp(),
     processedBy: null,
     processedAt: null
   };
 
   await depositRef.set(depositData);
-  return { success: true, depositId: depositRef.id };
+  return { success: true, depositId: depositRef.id, orderNumber };
 };
 
 const submitWithdrawalRequest = async (data, context) => {
@@ -604,6 +698,7 @@ const submitWithdrawalRequest = async (data, context) => {
   const walletRef = db.collection('wallets').doc(uid);
   const withdrawalRef = db.collection('withdrawals').doc();
   const txRef = db.collection('transactions').doc();
+  const orderNumber = generateOrderNumber('WD');
 
   return db.runTransaction(async (transaction) => {
     const walletSnap = await transaction.get(walletRef);
@@ -630,6 +725,7 @@ const submitWithdrawalRequest = async (data, context) => {
 
     transaction.set(withdrawalRef, {
       id: withdrawalRef.id,
+      orderNumber,
       uid,
       displayName: user.displayName,
       email: user.email,
@@ -637,6 +733,7 @@ const submitWithdrawalRequest = async (data, context) => {
       status: 'pending',
       paymentMethod,
       walletAddress,
+      utr: null,
       createdAt: FieldValue.serverTimestamp(),
       processedBy: null,
       processedAt: null
@@ -650,10 +747,11 @@ const submitWithdrawalRequest = async (data, context) => {
       status: 'pending',
       description: `Withdrawal request submitted (${paymentMethod})`,
       referenceId: withdrawalRef.id,
+      orderNumber,
       createdAt: FieldValue.serverTimestamp()
     });
 
-    return { success: true, withdrawalId: withdrawalRef.id };
+    return { success: true, withdrawalId: withdrawalRef.id, orderNumber };
   });
 };
 
@@ -867,8 +965,10 @@ const adminApproveWithdrawal = async (data, context) => {
       .limit(1);
     const txsSnap = await transaction.get(txsQuery);
 
+    const generatedUtr = data?.utr || String(Math.floor(100000000000 + Math.random() * 900000000000));
     transaction.update(withdrawalRef, {
       status: 'approved',
+      utr: withdrawal.utr || generatedUtr,
       processedBy: adminUid,
       processedAt: FieldValue.serverTimestamp()
     });
@@ -1042,6 +1142,7 @@ app.post('/api/settleRoundAndStartNew', decodeToken, handleRequest(settleRoundAn
 app.post('/api/settleRound1m', decodeToken, handleRequest(settleRoundAndStartNew_1m));
 app.post('/api/submitDepositRequest', decodeToken, requireAuth, handleRequest(submitDepositRequest));
 app.post('/api/submitWithdrawalRequest', decodeToken, requireAuth, handleRequest(submitWithdrawalRequest));
+app.post('/api/bindPayoutAccount', decodeToken, requireAuth, handleRequest(bindPayoutAccount));
 app.post('/api/adminApproveDeposit', decodeToken, requireAuth, handleRequest(adminApproveDeposit));
 app.post('/api/adminRejectDeposit', decodeToken, requireAuth, handleRequest(adminRejectDeposit));
 app.post('/api/adminApproveWithdrawal', decodeToken, requireAuth, handleRequest(adminApproveWithdrawal));

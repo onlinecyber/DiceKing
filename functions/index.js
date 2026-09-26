@@ -434,6 +434,102 @@ exports.settleRound1m = functions.https.onCall(async (data, context) => {
   return settleGameRoundLogic('1m');
 });
 
+const generateOrderNumber = (prefix = 'WD') => {
+  const now = new Date();
+  const pad = (n, len = 2) => String(n).padStart(len, '0');
+  const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const randomPart = Math.random().toString(16).substring(2, 10);
+  return `${prefix}${datePart}${randomPart}`;
+};
+
+/**
+ * Callable: bindPayoutAccount
+ * Permanently locks UPI ID or Bank account details and validates uniqueness across accounts.
+ */
+exports.bindPayoutAccount = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be logged in.');
+  }
+  const uid = context.auth.uid;
+  const { method, upiId, upiName, accountNumber, ifsc, bankName, holderName } = data;
+
+  if (!method || (method !== 'upi' && method !== 'bank')) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid payout method selected.');
+  }
+
+  const userRef = db.collection('users').doc(uid);
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) {
+    throw new functions.https.HttpsError('not-found', 'User profile not found.');
+  }
+  const userData = userSnap.data();
+
+  if (userData.boundPayout) {
+    throw new functions.https.HttpsError('failed-precondition', 'Your payout account is already permanently bound. Contact Customer Support to change it.');
+  }
+
+  if (method === 'upi') {
+    if (!upiId || !upiName) {
+      throw new functions.https.HttpsError('invalid-argument', 'UPI ID and Account Name are required.');
+    }
+    const cleanUpi = upiId.trim().toLowerCase();
+    const cleanUpiName = upiName.trim();
+
+    const existingSnap = await db.collection('users').where('boundUpiId', '==', cleanUpi).get();
+    const isTaken = existingSnap.docs.some(d => d.id !== uid);
+    if (isTaken) {
+      throw new functions.https.HttpsError('already-exists', 'This UPI ID is already linked to another account. You cannot link the same UPI across multiple accounts.');
+    }
+
+    const boundPayout = {
+      method: 'upi',
+      upiId: cleanUpi,
+      upiName: cleanUpiName,
+      boundAt: FieldValue.serverTimestamp()
+    };
+
+    await userRef.update({
+      boundPayout,
+      boundUpiId: cleanUpi,
+      boundBankAcc: null
+    });
+
+    return { success: true, message: 'UPI ID bound permanently.', boundPayout };
+  } else {
+    // Bank method
+    if (!accountNumber || !ifsc || !bankName || !holderName) {
+      throw new functions.https.HttpsError('invalid-argument', 'Account Number, IFSC Code, Bank Name, and Account Holder Name are all required.');
+    }
+    const cleanBankAcc = accountNumber.trim().replace(/\s+/g, '');
+    const cleanIfsc = ifsc.trim().toUpperCase();
+    const cleanBankName = bankName.trim();
+    const cleanHolderName = holderName.trim();
+
+    const existingSnap = await db.collection('users').where('boundBankAcc', '==', cleanBankAcc).get();
+    const isTaken = existingSnap.docs.some(d => d.id !== uid);
+    if (isTaken) {
+      throw new functions.https.HttpsError('already-exists', 'This Bank Account is already linked to another account. You cannot link the same Bank Account across multiple accounts.');
+    }
+
+    const boundPayout = {
+      method: 'bank',
+      accountNumber: cleanBankAcc,
+      ifsc: cleanIfsc,
+      bankName: cleanBankName,
+      holderName: cleanHolderName,
+      boundAt: FieldValue.serverTimestamp()
+    };
+
+    await userRef.update({
+      boundPayout,
+      boundBankAcc: cleanBankAcc,
+      boundUpiId: null
+    });
+
+    return { success: true, message: 'Bank account bound permanently.', boundPayout };
+  }
+});
+
 /**
  * Callable: submitDepositRequest
  * Creates a deposit ticket requiring admin validation.
@@ -455,9 +551,11 @@ exports.submitDepositRequest = functions.https.onCall(async (data, context) => {
   }
   const user = userSnap.data();
 
+  const orderNumber = generateOrderNumber('RC');
   const depositRef = db.collection('deposits').doc();
   const depositData = {
     id: depositRef.id,
+    orderNumber,
     uid,
     displayName: user.displayName,
     email: user.email,
@@ -465,13 +563,14 @@ exports.submitDepositRequest = functions.https.onCall(async (data, context) => {
     status: 'pending',
     paymentMethod,
     transactionReference,
+    utr: transactionReference,
     createdAt: FieldValue.serverTimestamp(),
     processedBy: null,
     processedAt: null
   };
 
   await depositRef.set(depositData);
-  return { success: true, depositId: depositRef.id };
+  return { success: true, depositId: depositRef.id, orderNumber };
 });
 
 /**
@@ -492,6 +591,7 @@ exports.submitWithdrawalRequest = functions.https.onCall(async (data, context) =
   const walletRef = db.collection('wallets').doc(uid);
   const withdrawalRef = db.collection('withdrawals').doc();
   const txRef = db.collection('transactions').doc();
+  const orderNumber = generateOrderNumber('WD');
 
   return db.runTransaction(async (transaction) => {
     const walletSnap = await transaction.get(walletRef);
@@ -521,6 +621,7 @@ exports.submitWithdrawalRequest = functions.https.onCall(async (data, context) =
     // Write withdrawal request
     transaction.set(withdrawalRef, {
       id: withdrawalRef.id,
+      orderNumber,
       uid,
       displayName: user.displayName,
       email: user.email,
@@ -528,6 +629,7 @@ exports.submitWithdrawalRequest = functions.https.onCall(async (data, context) =
       status: 'pending',
       paymentMethod,
       walletAddress,
+      utr: null,
       createdAt: FieldValue.serverTimestamp(),
       processedBy: null,
       processedAt: null
@@ -542,10 +644,11 @@ exports.submitWithdrawalRequest = functions.https.onCall(async (data, context) =
       status: 'pending',
       description: `Withdrawal request submitted (${paymentMethod})`,
       referenceId: withdrawalRef.id,
+      orderNumber,
       createdAt: FieldValue.serverTimestamp()
     });
 
-    return { success: true, withdrawalId: withdrawalRef.id };
+    return { success: true, withdrawalId: withdrawalRef.id, orderNumber };
   });
 });
 

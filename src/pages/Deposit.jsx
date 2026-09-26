@@ -101,26 +101,45 @@ const Deposit = () => {
       <Navbar />
       <div className="content-container">
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => navigate('/wallet')}
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid var(--card-border)',
+                borderRadius: '10px',
+                padding: '8px',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <h1 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#10b981', margin: 0 }}>Add Money</h1>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', margin: 0 }}>Instant deposit to your wallet</p>
+            </div>
+          </div>
           <button
-            onClick={() => navigate('/wallet')}
+            onClick={() => navigate('/history?tab=deposits')}
             style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--card-border)',
-              borderRadius: '10px',
-              padding: '8px',
-              color: 'var(--text-primary)',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              fontSize: '0.8rem',
+              fontWeight: '700',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
+              gap: '4px',
+              padding: '6px 8px',
             }}
           >
-            <ArrowLeft size={18} />
+            Deposit history
           </button>
-          <div>
-            <h1 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#10b981' }}>Add Money</h1>
-            <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Instant deposit to your wallet</p>
-          </div>
         </div>
 
         {/* Amount Input & Quick Select */}
