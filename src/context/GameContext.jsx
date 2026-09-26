@@ -524,26 +524,28 @@ export const GameProvider = ({ children }) => {
 
     const unsubscribeActivePatti = onSnapshot(activePattiQuery, (snapshot) => {
       if (!snapshot.empty) {
-        setActiveRoundPatti(snapshot.docs[0].data());
+        const activeDocs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        activeDocs.sort((a, b) => (b.roundNumber || 0) - (a.roundNumber || 0));
+        setActiveRoundPatti(activeDocs[0]);
       } else {
         triggerSettlePattiRound();
       }
     }, (error) => console.error("Active Patti round snapshot error:", error));
 
-    // Listen to completed Patti rounds history
+    // Listen to completed Patti rounds history (No composite index required!)
     const historyPattiQuery = query(
       collection(db, 'pattiRounds'),
-      where('status', '==', 'completed'),
       orderBy('createdAt', 'desc'),
-      limit(20)
+      limit(30)
     );
 
     const unsubscribeHistoryPatti = onSnapshot(historyPattiQuery, (snapshot) => {
-      const rounds = snapshot.docs.map(doc => doc.data());
-      setHistoryPatti(rounds);
+      const allRounds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const completedRounds = allRounds.filter(r => r.status === 'completed');
+      setHistoryPatti(completedRounds);
 
-      if (rounds.length > 0) {
-        const latestCompleted = rounds[0];
+      if (completedRounds.length > 0) {
+        const latestCompleted = completedRounds[0];
         if (prevCompletedRoundIdPattiRef.current && prevCompletedRoundIdPattiRef.current !== latestCompleted.id) {
           setRevealingPatti(true);
           soundManager.playDiceRoll();
@@ -554,42 +556,6 @@ export const GameProvider = ({ children }) => {
 
           setTimeout(() => {
             setRevealingPatti(false);
-            if (currentUser) {
-              const userPattiQuery = query(
-                collection(db, 'pattiBets'),
-                where('uid', '==', currentUser.uid),
-                where('roundId', '==', latestCompleted.id)
-              );
-              onSnapshot(userPattiQuery, (bSnap) => {
-                if (bSnap.empty) return;
-                let wonAmount = 0;
-                let totalBetAmount = 0;
-                const betsList = [];
-                bSnap.forEach(bd => {
-                  const b = bd.data();
-                  totalBetAmount += (Number(b.amount) || 0);
-                  if (b.status === 'won') wonAmount += (Number(b.payout) || 0);
-                  betsList.push(b);
-                });
-                const isWin = wonAmount > 0;
-                if (isWin) {
-                  soundManager.playWin();
-                  showToast(`🎉 You Won ₹${wonAmount.toFixed(2)} in Patti Round #${latestCompleted.roundNumber}!`, 'success');
-                } else {
-                  soundManager.playLoss();
-                  showToast(`Patti Round #${latestCompleted.roundNumber} Result: [${latestCompleted.card1}, ${latestCompleted.card2}]`, 'info');
-                }
-                setPattiResultModal({
-                  type: isWin ? 'win' : 'loss',
-                  roundNumber: latestCompleted.roundNumber,
-                  card1: latestCompleted.card1,
-                  card2: latestCompleted.card2,
-                  wonAmount,
-                  totalBetAmount,
-                  bets: betsList
-                });
-              }, { onlyOnce: true });
-            }
           }, 1500);
         }
         prevCompletedRoundIdPattiRef.current = latestCompleted.id;
@@ -635,16 +601,21 @@ export const GameProvider = ({ children }) => {
       setRecentBets(snapshot.docs.map(doc => doc.data()));
     }, (error) => console.error("Bets snapshot error:", error));
 
-    // Subscribe to User's recent Patti bets
+    // Subscribe to User's recent Patti bets (No composite index required!)
     const pattiBetsQuery = query(
       collection(db, 'pattiBets'),
       where('uid', '==', currentUser.uid),
-      orderBy('createdAt', 'desc'),
-      limit(20)
+      limit(50)
     );
 
     const unsubscribePattiBets = onSnapshot(pattiBetsQuery, (snapshot) => {
-      setRecentBetsPatti(snapshot.docs.map(doc => doc.data()));
+      const bets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      bets.sort((a, b) => {
+        const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+        const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+        return tB - tA;
+      });
+      setRecentBetsPatti(bets.slice(0, 20));
     }, (error) => console.error("Patti bets snapshot error:", error));
 
     return () => {

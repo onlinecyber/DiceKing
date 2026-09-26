@@ -524,10 +524,9 @@ exports.settlePattiRound = functions.https.onCall(async (data, context) => {
 
   return db.runTransaction(async (transaction) => {
     const activeRoundsSnap = await transaction.get(db.collection('pattiRounds').where('status', '==', 'active'));
-    const activeRoundDoc = activeRoundsSnap.docs[0];
     const now = Timestamp.now();
 
-    if (!activeRoundDoc) {
+    if (activeRoundsSnap.empty) {
       const nextRoundNumber = 1001;
       const endTime = Timestamp.fromMillis(now.toMillis() + roundDurationMs);
       const newRoundRef = db.collection('pattiRounds').doc();
@@ -545,6 +544,13 @@ exports.settlePattiRound = functions.https.onCall(async (data, context) => {
         createdAt: now
       });
       return { success: true, message: 'Created initial active round for Double Patti.' };
+    }
+
+    const sortedActiveDocs = [...activeRoundsSnap.docs].sort((a, b) => (b.data().roundNumber || 0) - (a.data().roundNumber || 0));
+    const activeRoundDoc = sortedActiveDocs[0];
+
+    for (let i = 1; i < sortedActiveDocs.length; i++) {
+      transaction.update(sortedActiveDocs[i].ref, { status: 'completed' });
     }
 
     const activeRound = activeRoundDoc.data();

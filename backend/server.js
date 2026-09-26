@@ -650,10 +650,9 @@ const settlePattiRound = async () => {
   try {
     const result = await db.runTransaction(async (transaction) => {
       const activeRoundsSnap = await transaction.get(db.collection('pattiRounds').where('status', '==', 'active'));
-      const activeRoundDoc = activeRoundsSnap.docs[0];
       const now = Timestamp.now();
 
-      if (!activeRoundDoc) {
+      if (activeRoundsSnap.empty) {
         console.log('[Patti] No active round found. Bootstrapping initial round #1001.');
         const nextRoundNumber = 1001;
         const endTime = Timestamp.fromMillis(now.toMillis() + roundDurationMs);
@@ -672,6 +671,15 @@ const settlePattiRound = async () => {
           createdAt: now
         });
         return { success: true, message: 'Created initial active round for Double Patti.' };
+      }
+
+      // Always pick latest active round by roundNumber descending
+      const sortedActiveDocs = [...activeRoundsSnap.docs].sort((a, b) => (b.data().roundNumber || 0) - (a.data().roundNumber || 0));
+      const activeRoundDoc = sortedActiveDocs[0];
+
+      // Clean up any stale duplicate active rounds
+      for (let i = 1; i < sortedActiveDocs.length; i++) {
+        transaction.update(sortedActiveDocs[i].ref, { status: 'completed' });
       }
 
       const activeRound = activeRoundDoc.data();
@@ -1501,6 +1509,18 @@ app.get('/api/testLogs', (req, res) => {
   res.json({ success: true, logs: global.apiLogs || [] });
 });
 
+app.get('/api/testPatti', async (req, res) => {
+  try {
+    const activeSnap = await db.collection('pattiRounds').where('status', '==', 'active').get();
+    const active = activeSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const recentSnap = await db.collection('pattiRounds').orderBy('createdAt', 'desc').limit(5).get();
+    const recent = recentSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ success: true, activeCount: activeSnap.size, active, recent });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Fallback Route
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
@@ -1566,13 +1586,14 @@ if (!process.env.VERCEL) {
     try {
       const activeSnaps = await db.collection('pattiRounds').where('status', '==', 'active').get();
       const now = Date.now();
-      const roundDoc = activeSnaps.docs[0];
 
-      if (!roundDoc) {
+      if (activeSnaps.empty) {
         console.log('[AutonomousScheduler Patti] No active round. Bootstrapping initial round...');
         await settlePattiRound();
         nextDelayMs = defaultDuration;
       } else {
+        const sorted = [...activeSnaps.docs].sort((a, b) => (b.data().roundNumber || 0) - (a.data().roundNumber || 0));
+        const roundDoc = sorted[0];
         const roundData = roundDoc.data();
         const endTimeMs = roundData.endTime 
           ? (roundData.endTime.toMillis ? roundData.endTime.toMillis() : roundData.endTime.seconds * 1000) 
