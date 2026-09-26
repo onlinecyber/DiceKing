@@ -80,13 +80,17 @@ const SupportPage = () => {
     }
   };
 
-  const handleWhatsAppClick = () => {
-    const text = encodeURIComponent(`Hello support, I need help with my Dice King account (Email: ${currentUser?.email || 'N/A'}).`);
-    window.open(`https://wa.me/91${appSettings.supportPhone}?text=${text}`, '_blank');
+  const rawPhone = String(appSettings?.supportPhone || '9525867845').replace(/\D/g, '');
+  const cleanPhone = rawPhone.length === 10 ? `91${rawPhone}` : (rawPhone.startsWith('91') ? rawPhone : `91${rawPhone}`);
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(`Hello support, I need help with my Dice King account (Email: ${currentUser?.email || 'Player'}).`)}`;
+  const telegramUrl = appSettings?.supportTelegram || 'https://t.me/Doublepattiin';
+
+  const handleWhatsAppClick = (e) => {
+    e?.stopPropagation?.();
   };
 
-  const handleTelegramClick = () => {
-    window.open(appSettings.supportTelegram, '_blank');
+  const handleTelegramClick = (e) => {
+    e?.stopPropagation?.();
   };
 
   const formatDate = (timestamp) => {
@@ -110,44 +114,58 @@ const SupportPage = () => {
         {/* 1. Quick Chat Social Channels */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
           {/* WhatsApp Card */}
-          <GlassCard 
-            onClick={handleWhatsAppClick}
-            interactive={true} 
-            style={{ 
-              padding: '16px 12px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              gap: '6px', 
-              cursor: 'pointer',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
-              background: 'rgba(16, 185, 129, 0.04)'
-            }}
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
           >
-            <span style={{ fontSize: '1.5rem' }}>💬</span>
-            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--success-emerald)' }}>WhatsApp</span>
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Click to Chat</span>
-          </GlassCard>
+            <GlassCard 
+              onClick={handleWhatsAppClick}
+              interactive={true} 
+              style={{ 
+                padding: '16px 12px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                gap: '6px', 
+                cursor: 'pointer',
+                border: '1px solid rgba(16, 185, 129, 0.2)',
+                background: 'rgba(16, 185, 129, 0.04)'
+              }}
+            >
+              <span style={{ fontSize: '1.5rem' }}>💬</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--success-emerald)' }}>WhatsApp</span>
+              <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Click to Chat</span>
+            </GlassCard>
+          </a>
 
           {/* Telegram Card */}
-          <GlassCard 
-            onClick={handleTelegramClick}
-            interactive={true} 
-            style={{ 
-              padding: '16px 12px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              gap: '6px', 
-              cursor: 'pointer',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
-              background: 'rgba(56, 189, 248, 0.04)'
-            }}
+          <a
+            href={telegramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
           >
-            <span style={{ fontSize: '1.5rem' }}>✈️</span>
-            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#38bdf8' }}>Telegram</span>
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Join Channel</span>
-          </GlassCard>
+            <GlassCard 
+              onClick={handleTelegramClick}
+              interactive={true} 
+              style={{ 
+                padding: '16px 12px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                gap: '6px', 
+                cursor: 'pointer',
+                border: '1px solid rgba(56, 189, 248, 0.2)',
+                background: 'rgba(56, 189, 248, 0.04)'
+              }}
+            >
+              <span style={{ fontSize: '1.5rem' }}>✈️</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#38bdf8' }}>Telegram</span>
+              <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Join Channel</span>
+            </GlassCard>
+          </a>
         </div>
 
         {/* 2. Raise Ticket Form */}
