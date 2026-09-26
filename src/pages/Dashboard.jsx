@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Gamepad2, Wallet, Trophy, History, HeadphonesIcon,
-  Copy, Check, ArrowRight, Gift, Shield, Sparkles, Clock
+  Gamepad2, Trophy, HeadphonesIcon,
+  Copy, Check, Gift, Sparkles, Clock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGame } from '../context/GameContext';
@@ -66,26 +66,6 @@ const Dashboard = () => {
       badge: '⏱️ 1 MIN'
     },
     {
-      id: 'wallet',
-      icon: Wallet,
-      label: 'Wallet',
-      sublabel: wallet ? `₹${wallet.balance.toFixed(2)} balance` : 'Deposit & Withdraw',
-      gradient: 'linear-gradient(135deg, #059669, #10b981)',
-      glow: 'rgba(16, 185, 129, 0.3)',
-      path: '/wallet',
-      badge: null
-    },
-    {
-      id: 'history',
-      icon: History,
-      label: 'History',
-      sublabel: 'View your bet history',
-      gradient: 'linear-gradient(135deg, #d97706, #f59e0b)',
-      glow: 'rgba(245, 158, 11, 0.3)',
-      path: '/history',
-      badge: null
-    },
-    {
       id: 'leaderboard',
       icon: Trophy,
       label: 'Leaderboard',
@@ -104,16 +84,6 @@ const Dashboard = () => {
       glow: 'rgba(29, 78, 216, 0.3)',
       path: '/support',
       badge: null
-    },
-    {
-      id: 'profile',
-      icon: Shield,
-      label: 'My Profile',
-      sublabel: profile?.role === 'admin' ? 'Admin Account' : 'View & Edit',
-      gradient: 'linear-gradient(135deg, #6b21a8, #9333ea)',
-      glow: 'rgba(147, 51, 234, 0.3)',
-      path: '/profile',
-      badge: profile?.role === 'admin' ? '⚡ ADMIN' : null
     }
   ];
 
@@ -123,41 +93,7 @@ const Dashboard = () => {
 
       <div className="content-container" style={{ gap: '16px' }}>
 
-        {/* Play CTA Banner */}
-        <div
-          onClick={() => navigate('/game')}
-          style={{
-            background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #1d4ed8 100%)',
-            borderRadius: '18px', padding: '16px 18px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            boxShadow: '0 8px 32px rgba(124, 58, 237, 0.35)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.01)'}
-          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: '900', color: '#fff', marginBottom: '3px' }}>
-              🎲 Start Playing Now!
-            </div>
-            <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.75)' }}>
-              {activeRound
-                ? `Round #${activeRound.roundNumber} — ${countdown}s remaining`
-                : 'New round starting soon...'}
-            </div>
-          </div>
-          <div style={{
-            background: 'rgba(255,215,0,0.15)', border: '1px solid rgba(255,215,0,0.4)',
-            borderRadius: '12px', padding: '8px 12px',
-            display: 'flex', alignItems: 'center', gap: '5px'
-          }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--accent-gold)' }}>Play</span>
-            <ArrowRight size={14} color="var(--accent-gold)" />
-          </div>
-        </div>
-
-        {/* Quick Actions Grid */}
+        {/* Quick Actions Grid (Clean 2x2 Layout) */}
         <div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700', letterSpacing: '1px', marginBottom: '12px' }}>
             QUICK ACTIONS

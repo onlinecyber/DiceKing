@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Wallet, History, HeadphonesIcon, ChevronRight, Copy, Check, Share2, Star } from 'lucide-react';
+import { LogOut, HeadphonesIcon, ChevronRight, Copy, Check, Share2, Star, KeyRound, Trophy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGame } from '../context/GameContext';
 import GlassCard from '../components/Common/GlassCard';
@@ -48,9 +48,9 @@ const Profile = () => {
   };
 
   const menuItems = [
-    { icon: Wallet,          label: 'My Wallet',       sub: 'Deposit & Withdraw funds',    path: '/wallet',    color: '#10b981' },
-    { icon: History,         label: 'Bet History',      sub: 'View all your game records',  path: '/history',   color: '#f59e0b' },
-    { icon: HeadphonesIcon,  label: 'Help & Support',   sub: '24/7 assistance available',   path: '/support',   color: '#6366f1' },
+    { icon: HeadphonesIcon,  label: 'Help & Support',    sub: '24/7 WhatsApp & Telegram assistance', path: '/support',         color: '#6366f1' },
+    { icon: Trophy,          label: 'Leaderboard',       sub: 'Check top winning players',           path: '/leaderboard',     color: '#d97706' },
+    { icon: KeyRound,        label: 'Change Password',   sub: 'Account security & reset',            path: '/forgot-password', color: '#10b981' },
   ];
 
   return (

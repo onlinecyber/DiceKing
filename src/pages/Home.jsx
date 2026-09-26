@@ -115,31 +115,7 @@ const Home = () => {
 
 
 
-        {/* Wallet Balance widget card */}
-        <GlassCard style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '4px', marginBottom: '8px', gap: '10px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: '600' }}>YOUR BALANCE</span>
-            <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--accent-gold)' }}>
-              ₹{wallet ? wallet.balance.toFixed(2) : '0.00'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
-              onClick={() => navigate('/wallet')} 
-              className="btn-outline" 
-              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-            >
-              Withdraw
-            </button>
-            <button 
-              onClick={() => navigate('/wallet')} 
-              className="btn-gold" 
-              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-            >
-              Deposit
-            </button>
-          </div>
-        </GlassCard>
+
 
 
 
