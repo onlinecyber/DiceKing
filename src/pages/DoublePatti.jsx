@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Sparkles, Trophy, Shuffle, RotateCcw, AlertCircle, HelpCircle, CheckCircle, Flame, Coins, ShieldCheck, History as HistoryIcon, User } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Clock, 
+  Shuffle, 
+  RotateCcw, 
+  HelpCircle, 
+  CheckCircle, 
+  History as HistoryIcon, 
+  User 
+} from 'lucide-react';
 import { useGame } from '../context/GameContext';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Common/Navbar';
-import BottomNav from '../components/Common/BottomNav';
 import GlassCard from '../components/Common/GlassCard';
 
 const DoublePatti = () => {
@@ -30,7 +38,7 @@ const DoublePatti = () => {
   const [selectedNumbers, setSelectedNumbers] = useState([]);
   const [betAmount, setBetAmount] = useState(10);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState('history'); // 'history' | 'mybets' | 'rules'
+  const [activeTab, setActiveTab] = useState('history'); // 'history' | 'mybets'
   const [showRulesModal, setShowRulesModal] = useState(false);
 
   // Smooth local 1-second countdown ticker
@@ -75,6 +83,13 @@ const DoublePatti = () => {
     setSelectedNumbers([]);
   };
 
+  // Current active round bets placed by user
+  const currentRoundBets = recentBetsPatti.filter(b => 
+    (b.roundId && activeRoundPatti?.id && b.roundId === activeRoundPatti.id) ||
+    (b.roundNumber && activeRoundPatti?.roundNumber && String(b.roundNumber) === String(activeRoundPatti.roundNumber))
+  );
+  const hasPlacedBet = currentRoundBets.length > 0;
+
   // Betting submission
   const handlePlaceBet = async () => {
     if (hasPlacedBet) {
@@ -98,7 +113,6 @@ const DoublePatti = () => {
     setIsSubmitting(true);
     try {
       await placePattiBet(selectedNumbers, betAmount);
-      // Keep selected or let player choose again
     } catch (err) {
       // Toast is handled in context
     } finally {
@@ -106,11 +120,7 @@ const DoublePatti = () => {
     }
   };
 
-  // Payout calculations
-  const jackpotPayout = Math.round(betAmount * 9.0 * 0.95 * 100) / 100;
-  const singleMatchPayout = Math.round(betAmount * 1.5 * 0.95 * 100) / 100;
-
-  // Active round display
+  // Active round display parameters
   const roundNumber = activeRoundPatti ? activeRoundPatti.roundNumber : '---';
   const isBettingLocked = localSeconds <= 5 || settlingPatti || revealingPatti;
   const isBlankPhase = localSeconds <= 5 && !revealingPatti;
@@ -120,21 +130,14 @@ const DoublePatti = () => {
   const displayedCard1 = revealingPatti ? revealedCardsPatti.card1 : (isBlankPhase ? '?' : (latestCompleted?.card1 ?? '?'));
   const displayedCard2 = revealingPatti ? revealedCardsPatti.card2 : (isBlankPhase ? '?' : (latestCompleted?.card2 ?? '?'));
 
-  // Current active round bets placed by user
-  const currentRoundBets = recentBetsPatti.filter(b => 
-    (b.roundId && activeRoundPatti?.id && b.roundId === activeRoundPatti.id) ||
-    (b.roundNumber && activeRoundPatti?.roundNumber && String(b.roundNumber) === String(activeRoundPatti.roundNumber))
-  );
-  const hasPlacedBet = currentRoundBets.length > 0;
-
   return (
     <div className="app-container" style={{ paddingBottom: '90px' }}>
       <Navbar />
 
-      <div className="content-container" style={{ gap: '14px', maxWidth: '480px', margin: '0 auto', width: '100%' }}>
+      <div className="content-container" style={{ gap: '12px', maxWidth: '460px', margin: '0 auto', width: '100%' }}>
         
-        {/* Header Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+        {/* Sleek Top Header Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
               onClick={() => navigate('/dashboard')}
@@ -142,8 +145,8 @@ const DoublePatti = () => {
                 background: 'rgba(255, 255, 255, 0.08)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
                 borderRadius: '12px',
-                width: '38px',
-                height: '38px',
+                width: '36px',
+                height: '36px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -155,7 +158,7 @@ const DoublePatti = () => {
             </button>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '1.05rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>
                   DOUBLE PATTI
                 </span>
                 <span style={{
@@ -166,28 +169,28 @@ const DoublePatti = () => {
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                   color: '#000'
                 }}>
-                  1-MIN FAST
+                  1-MIN
                 </span>
               </div>
               <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                Round #{roundNumber} • Match 2 for 9X Win
+                Round #{roundNumber}
               </div>
             </div>
           </div>
 
           <button
-            onClick={() => setShowRulesModal(false)}
+            onClick={() => setShowRulesModal(true)}
             style={{
               background: 'rgba(245, 158, 11, 0.12)',
               border: '1px solid rgba(245, 158, 11, 0.3)',
               borderRadius: '10px',
-              padding: '6px 10px',
+              padding: '6px 12px',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
               color: 'var(--accent-gold)',
-              fontSize: '0.7rem',
-              fontWeight: '700',
+              fontSize: '0.72rem',
+              fontWeight: '800',
               cursor: 'pointer'
             }}
           >
@@ -196,27 +199,29 @@ const DoublePatti = () => {
           </button>
         </div>
 
-        {/* Live Timer & Round Status Bar */}
+        {/* Clean Unified Cards & Live Countdown Stage */}
         <GlassCard style={{
-          padding: '12px 16px',
-          borderRadius: '16px',
-          background: isBettingLocked
-            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(11, 9, 20, 0.95))'
-            : 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(11, 9, 20, 0.95))',
-          border: isBettingLocked ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(245, 158, 11, 0.3)',
-          boxShadow: isBettingLocked ? '0 0 20px rgba(239, 68, 68, 0.2)' : '0 0 20px rgba(245, 158, 11, 0.15)'
+          padding: '16px',
+          borderRadius: '20px',
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          background: 'radial-gradient(circle at center, rgba(30, 27, 75, 0.75) 0%, rgba(11, 9, 20, 0.98) 100%)',
+          border: '1px solid rgba(139, 92, 246, 0.25)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={16} color={isBettingLocked ? '#ef4444' : '#f59e0b'} />
-                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: isBettingLocked ? '#ef4444' : '#f59e0b' }}>
-                  {isBettingLocked ? 'BETTING CLOSED' : 'LIVE ROUND IN PROGRESS'}
-                </span>
-              </div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                {isBettingLocked ? '🔒 CARDS BLANK • REVEALING AT 00:00' : 'Picks lock at 00:05 seconds'}
-              </div>
+          
+          {/* Status & Timer Header Row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={15} color={isBettingLocked ? '#ef4444' : '#f59e0b'} />
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: '800',
+                color: isBettingLocked ? '#ef4444' : '#f59e0b',
+                letterSpacing: '0.5px'
+              }}>
+                {isBlankPhase ? '🔒 CARDS BLANK' : isBettingLocked ? 'BETTING CLOSED' : 'LIVE ROUND'}
+              </span>
             </div>
 
             {/* Countdown Badge */}
@@ -225,15 +230,14 @@ const DoublePatti = () => {
               alignItems: 'center',
               justifyContent: 'center',
               minWidth: '60px',
-              height: '42px',
-              padding: '0 12px',
-              borderRadius: '12px',
+              padding: '4px 10px',
+              borderRadius: '10px',
               background: isBettingLocked ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
               border: isBettingLocked ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(245, 158, 11, 0.5)'
             }}>
               <span style={{
                 fontFamily: 'monospace',
-                fontSize: '1.3rem',
+                fontSize: '1.2rem',
                 fontWeight: '900',
                 color: isBettingLocked ? '#ef4444' : '#fbbf24',
                 letterSpacing: '1px'
@@ -242,37 +246,15 @@ const DoublePatti = () => {
               </span>
             </div>
           </div>
-        </GlassCard>
 
-        {/* 2-Card Reveal Stage */}
-        <GlassCard style={{
-          padding: '20px 16px',
-          borderRadius: '20px',
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-          background: 'radial-gradient(circle at center, rgba(30, 27, 75, 0.7) 0%, rgba(11, 9, 20, 0.95) 100%)',
-          border: '1px solid rgba(139, 92, 246, 0.25)'
-        }}>
-          <div style={{
-            fontSize: '0.7rem',
-            color: isBlankPhase ? '#ef4444' : 'var(--text-secondary)',
-            fontWeight: '700',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            marginBottom: '14px'
-          }}>
-            {revealingPatti ? '✨ REVEALING WINNING PATTI CARDS ✨' : (isBlankPhase ? '🔒 CARDS ARE BLANK (REVEALING SOON)' : (latestCompleted ? `LAST ROUND #${latestCompleted.roundNumber} RESULT` : 'WINNING CARDS'))}
-          </div>
-
-          {/* Cards Stage Container */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginBottom: '14px' }}>
+          {/* Cards Stage */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
             
-            {/* Card 1 */}
+            {/* Card 1 (Patti 1) */}
             <div style={{
-              width: '100px',
-              height: '140px',
-              borderRadius: '16px',
+              width: '92px',
+              height: '128px',
+              borderRadius: '14px',
               background: isBlankPhase 
                 ? 'linear-gradient(145deg, #1f1d2b, #0d0c14)' 
                 : 'linear-gradient(145deg, #1e1b4b, #0f172a)',
@@ -281,21 +263,21 @@ const DoublePatti = () => {
                 : '2px solid rgba(245, 158, 11, 0.6)',
               boxShadow: isBlankPhase 
                 ? '0 0 16px rgba(239, 68, 68, 0.15)' 
-                : '0 8px 24px rgba(245, 158, 11, 0.25), inset 0 0 16px rgba(245, 158, 11, 0.1)',
+                : '0 6px 20px rgba(245, 158, 11, 0.25), inset 0 0 12px rgba(245, 158, 11, 0.1)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '10px 8px',
+              padding: '8px 6px',
               transform: revealingPatti ? 'rotateY(180deg) scale(1.05)' : 'scale(1)',
               transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
               position: 'relative'
             }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : 'var(--accent-gold)', alignSelf: 'flex-start' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : 'var(--accent-gold)', alignSelf: 'flex-start' }}>
                 PATTI 1
               </div>
               <div style={{
-                fontSize: '2.8rem',
+                fontSize: '2.6rem',
                 fontWeight: '900',
                 color: isBlankPhase ? 'rgba(255, 255, 255, 0.2)' : '#fff',
                 fontFamily: 'outfit, sans-serif',
@@ -303,33 +285,33 @@ const DoublePatti = () => {
               }}>
                 {displayedCard1}
               </div>
-              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : 'var(--accent-gold)', alignSelf: 'flex-end' }}>
-                {isBlankPhase ? 'BLANK' : '♠️ 0-9'}
+              <div style={{ fontSize: '0.58rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : 'var(--accent-gold)', alignSelf: 'flex-end' }}>
+                {isBlankPhase ? 'HIDDEN' : '♠️ 0-9'}
               </div>
             </div>
 
-            {/* PLUS / VS Badge */}
+            {/* Separator */}
             <div style={{
-              width: '32px',
-              height: '32px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               background: 'rgba(255, 255, 255, 0.08)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '0.75rem',
+              fontSize: '0.7rem',
               fontWeight: '900',
               color: 'var(--accent-gold)'
             }}>
               &
             </div>
 
-            {/* Card 2 */}
+            {/* Card 2 (Patti 2) */}
             <div style={{
-              width: '100px',
-              height: '140px',
-              borderRadius: '16px',
+              width: '92px',
+              height: '128px',
+              borderRadius: '14px',
               background: isBlankPhase 
                 ? 'linear-gradient(145deg, #1f1d2b, #0d0c14)' 
                 : 'linear-gradient(145deg, #1e1b4b, #0f172a)',
@@ -338,21 +320,21 @@ const DoublePatti = () => {
                 : '2px solid rgba(217, 70, 239, 0.6)',
               boxShadow: isBlankPhase 
                 ? '0 0 16px rgba(239, 68, 68, 0.15)' 
-                : '0 8px 24px rgba(217, 70, 239, 0.25), inset 0 0 16px rgba(217, 70, 239, 0.1)',
+                : '0 6px 20px rgba(217, 70, 239, 0.25), inset 0 0 12px rgba(217, 70, 239, 0.1)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '10px 8px',
+              padding: '8px 6px',
               transform: revealingPatti ? 'rotateY(180deg) scale(1.05)' : 'scale(1)',
               transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
               position: 'relative'
             }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : '#f472b6', alignSelf: 'flex-start' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : '#f472b6', alignSelf: 'flex-start' }}>
                 PATTI 2
               </div>
               <div style={{
-                fontSize: '2.8rem',
+                fontSize: '2.6rem',
                 fontWeight: '900',
                 color: isBlankPhase ? 'rgba(255, 255, 255, 0.2)' : '#fff',
                 fontFamily: 'outfit, sans-serif',
@@ -360,74 +342,90 @@ const DoublePatti = () => {
               }}>
                 {displayedCard2}
               </div>
-              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : '#f472b6', alignSelf: 'flex-end' }}>
-                {isBlankPhase ? 'BLANK' : '♥️ 0-9'}
+              <div style={{ fontSize: '0.58rem', fontWeight: '800', color: isBlankPhase ? '#ef4444' : '#f472b6', alignSelf: 'flex-end' }}>
+                {isBlankPhase ? 'HIDDEN' : '♥️ 0-9'}
               </div>
             </div>
           </div>
 
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-            {isBlankPhase ? '🔒 Cards are blank for last 5s! Cards flip at 00:00' : 'Drawn cards: 2 distinct numbers every 60s'}
+          {/* Compact Multiplier Bar */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '12px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '20px',
+            padding: '4px 12px',
+            fontSize: '0.68rem',
+            fontWeight: '800'
+          }}>
+            <span style={{ color: 'var(--accent-gold)' }}>🎯 Both Match: 9X</span>
+            <span style={{ color: 'rgba(255, 255, 255, 0.2)' }}>|</span>
+            <span style={{ color: '#38bdf8' }}>🛡️ 1 Match: 1.5X</span>
           </div>
+
         </GlassCard>
 
         {/* Active Bet Placed Confirmation Indicator Banner */}
         {currentRoundBets.length > 0 && (
           <GlassCard style={{
-            padding: '12px 16px',
-            borderRadius: '16px',
+            padding: '10px 14px',
+            borderRadius: '14px',
             background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(11, 9, 20, 0.95))',
             border: '1px solid rgba(34, 197, 94, 0.5)',
-            boxShadow: '0 0 20px rgba(34, 197, 94, 0.2)'
+            boxShadow: '0 0 16px rgba(34, 197, 94, 0.2)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <CheckCircle size={16} color="#4ade80" />
-                <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#4ade80' }}>
-                  BET CONFIRMED (ROUND #{activeRoundPatti?.roundNumber})
+                <CheckCircle size={15} color="#4ade80" />
+                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#4ade80' }}>
+                  BET CONFIRMED (ROUND #{roundNumber})
                 </span>
               </div>
-              <span style={{
-                fontSize: '0.65rem',
-                fontWeight: '800',
-                padding: '2px 8px',
-                borderRadius: '6px',
-                background: 'rgba(34, 197, 94, 0.25)',
-                color: '#4ade80'
-              }}>
-                ACTIVE
-              </span>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {currentRoundBets.map((b, idx) => (
+                  <span key={idx} style={{ fontSize: '0.72rem', fontWeight: '900', color: 'var(--accent-gold)' }}>
+                    P1: #{b.numbers[0]} & P2: #{b.numbers[1]} (₹{b.amount})
+                  </span>
+                ))}
+              </div>
             </div>
-
-            {currentRoundBets.map((b, idx) => (
-              <div key={b.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.75rem' }}>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Your Bet:</span>
-                  <span style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
-                    Patti 1: #{b.numbers[0]}
-                  </span>
-                  <span style={{ background: 'linear-gradient(135deg, #d946ef, #a855f7)', color: '#fff', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
-                    Patti 2: #{b.numbers[1]}
-                  </span>
-                </div>
-                <span style={{ fontWeight: '900', color: 'var(--accent-gold)' }}>
-                  ₹{b.amount}
-                </span>
-              </div>
-            ))}
           </GlassCard>
         )}
 
-        {/* 10-Number Selection Board */}
-        <GlassCard style={{ padding: '16px', borderRadius: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#fff' }}>
-                Pick 2 Lucky Numbers
-              </div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                1st pick = Patti 1 (Card 1), 2nd pick = Patti 2 (Card 2)
-              </div>
+        {/* Unified Betting Control Board */}
+        <GlassCard style={{ padding: '14px', borderRadius: '18px' }}>
+          
+          {/* Header Row: Selection Display & Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: '700' }}>
+                Picked:
+              </span>
+              {selectedNumbers.length === 0 ? (
+                <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontStyle: 'italic' }}>
+                  Select 2 digits
+                </span>
+              ) : (
+                selectedNumbers.map((num, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      background: idx === 0 
+                        ? 'linear-gradient(135deg, #f59e0b, #d97706)' 
+                        : 'linear-gradient(135deg, #d946ef, #a855f7)',
+                      color: '#fff',
+                      fontWeight: '900',
+                      fontSize: '0.72rem',
+                      padding: '2px 7px',
+                      borderRadius: '6px'
+                    }}
+                  >
+                    {idx === 0 ? `P1: ${num}` : `P2: ${num}`}
+                  </span>
+                ))
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '6px' }}>
@@ -439,7 +437,7 @@ const DoublePatti = () => {
                   border: '1px solid rgba(255, 255, 255, 0.15)',
                   borderRadius: '8px',
                   padding: '4px 8px',
-                  fontSize: '0.65rem',
+                  fontSize: '0.62rem',
                   fontWeight: '700',
                   color: '#fff',
                   display: 'flex',
@@ -460,7 +458,7 @@ const DoublePatti = () => {
                     border: '1px solid rgba(239, 68, 68, 0.3)',
                     borderRadius: '8px',
                     padding: '4px 8px',
-                    fontSize: '0.65rem',
+                    fontSize: '0.62rem',
                     fontWeight: '700',
                     color: '#ef4444',
                     display: 'flex',
@@ -477,7 +475,7 @@ const DoublePatti = () => {
           </div>
 
           {/* 0 to 9 Grid (5x2) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginBottom: '12px' }}>
             {Array.from({ length: 10 }, (_, i) => i).map((num) => {
               const isSelected = selectedNumbers.includes(num);
               const orderIdx = selectedNumbers.indexOf(num);
@@ -487,21 +485,21 @@ const DoublePatti = () => {
                   onClick={() => handleToggleNumber(num)}
                   disabled={isBettingLocked || hasPlacedBet}
                   style={{
-                    aspectRatio: '1/1',
-                    borderRadius: '14px',
+                    height: '44px',
+                    borderRadius: '12px',
                     border: isSelected
                       ? orderIdx === 0 ? '2px solid var(--accent-gold)' : '2px solid #d946ef'
                       : '1px solid rgba(255, 255, 255, 0.1)',
                     background: isSelected
                       ? orderIdx === 0 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #d946ef, #a855f7)'
                       : 'rgba(255, 255, 255, 0.05)',
-                    color: isSelected ? '#fff' : '#fff',
-                    fontSize: '1.25rem',
+                    color: '#fff',
+                    fontSize: '1.2rem',
                     fontWeight: '900',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: isSelected ? (orderIdx === 0 ? '0 0 16px rgba(245, 158, 11, 0.4)' : '0 0 16px rgba(217, 70, 239, 0.4)') : 'none',
+                    boxShadow: isSelected ? (orderIdx === 0 ? '0 0 12px rgba(245, 158, 11, 0.4)' : '0 0 12px rgba(217, 70, 239, 0.4)') : 'none',
                     cursor: (isBettingLocked || hasPlacedBet) ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s ease',
                     position: 'relative'
@@ -511,13 +509,13 @@ const DoublePatti = () => {
                   {isSelected && (
                     <div style={{
                       position: 'absolute',
-                      top: '3px',
-                      right: '3px',
-                      fontSize: '0.55rem',
-                      fontWeight: '800',
+                      top: '2px',
+                      right: '2px',
+                      fontSize: '0.52rem',
+                      fontWeight: '900',
                       background: 'rgba(0, 0, 0, 0.6)',
                       color: '#fff',
-                      padding: '1px 4px',
+                      padding: '1px 3px',
                       borderRadius: '4px'
                     }}>
                       P{orderIdx + 1}
@@ -528,58 +526,8 @@ const DoublePatti = () => {
             })}
           </div>
 
-          {/* Selected Numbers Status Banner */}
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.04)',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            border: '1px solid rgba(255, 255, 255, 0.08)'
-          }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
-              Your Selection:
-            </span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {selectedNumbers.length === 0 ? (
-                <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontStyle: 'italic' }}>
-                  None picked
-                </span>
-              ) : (
-                selectedNumbers.map((num, idx) => (
-                  <span
-                    key={idx}
-                    style={{
-                      background: idx === 0 
-                        ? 'linear-gradient(135deg, #f59e0b, #d97706)' 
-                        : 'linear-gradient(135deg, #d946ef, #a855f7)',
-                      color: '#fff',
-                      fontWeight: '900',
-                      fontSize: '0.75rem',
-                      padding: '3px 8px',
-                      borderRadius: '8px',
-                      boxShadow: idx === 0 
-                        ? '0 2px 8px rgba(245, 158, 11, 0.3)' 
-                        : '0 2px 8px rgba(217, 70, 239, 0.3)'
-                    }}
-                  >
-                    {idx === 0 ? `Patti 1: ${num}` : `Patti 2: ${num}`}
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
-        </GlassCard>
-
-        {/* Bet Amount Selector */}
-        <GlassCard style={{ padding: '16px', borderRadius: '20px' }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#fff', marginBottom: '10px' }}>
-            Select Bet Amount
-          </div>
-
-          {/* Quick Chips */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginBottom: '14px' }}>
+          {/* Quick Chips Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '5px', marginBottom: '12px' }}>
             {chips.map((amt) => {
               const isSelected = betAmount === amt;
               return (
@@ -588,8 +536,8 @@ const DoublePatti = () => {
                   onClick={() => setBetAmount(amt)}
                   disabled={isBettingLocked || hasPlacedBet}
                   style={{
-                    padding: '8px 2px',
-                    borderRadius: '10px',
+                    padding: '6px 2px',
+                    borderRadius: '8px',
                     border: isSelected
                       ? '1px solid var(--accent-gold)'
                       : '1px solid rgba(255, 255, 255, 0.08)',
@@ -598,7 +546,7 @@ const DoublePatti = () => {
                       : 'rgba(255, 255, 255, 0.05)',
                     color: isSelected ? 'var(--accent-gold)' : 'var(--text-secondary)',
                     fontWeight: isSelected ? '800' : '600',
-                    fontSize: '0.75rem',
+                    fontSize: '0.72rem',
                     cursor: (isBettingLocked || hasPlacedBet) ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s ease'
                   }}
@@ -609,95 +557,58 @@ const DoublePatti = () => {
             })}
           </div>
 
-          {/* Multipliers & Payout Potential Info Card */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.5), rgba(15, 23, 42, 0.5))',
-            borderRadius: '12px',
-            padding: '12px',
-            border: '1px solid rgba(139, 92, 246, 0.2)',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '10px',
-            marginBottom: '16px'
-          }}>
-            <div style={{ borderRight: '1px solid rgba(255, 255, 255, 0.08)', paddingRight: '8px' }}>
-              <div style={{ fontSize: '0.65rem', color: '#a78bfa', fontWeight: '700' }}>
-                🎯 BOTH MATCH (9X)
-              </div>
-              <div style={{ fontSize: '1.05rem', fontWeight: '900', color: 'var(--accent-gold)', marginTop: '2px' }}>
-                ₹{jackpotPayout.toFixed(2)}
-              </div>
-              <div style={{ fontSize: '0.58rem', color: 'var(--text-secondary)' }}>
-                Net after 5% GST/fee
-              </div>
-            </div>
-
-            <div style={{ paddingLeft: '4px' }}>
-              <div style={{ fontSize: '0.65rem', color: '#38bdf8', fontWeight: '700' }}>
-                🛡️ 1 MATCH (1.5X)
-              </div>
-              <div style={{ fontSize: '1.05rem', fontWeight: '900', color: '#38bdf8', marginTop: '2px' }}>
-                ₹{singleMatchPayout.toFixed(2)}
-              </div>
-              <div style={{ fontSize: '0.58rem', color: 'var(--text-secondary)' }}>
-                Safety return payout
-              </div>
-            </div>
-          </div>
-
-          {/* Place Bet Button */}
+          {/* Main Action Button */}
           <button
             onClick={handlePlaceBet}
             disabled={selectedNumbers.length !== 2 || isBettingLocked || isSubmitting || hasPlacedBet}
             style={{
               width: '100%',
-              padding: '15px',
-              borderRadius: '14px',
+              padding: '14px',
+              borderRadius: '12px',
               background: (selectedNumbers.length === 2 && !isBettingLocked && !hasPlacedBet)
                 ? 'linear-gradient(135deg, #f59e0b, #d97706)'
                 : 'rgba(255, 255, 255, 0.08)',
               border: 'none',
               color: (selectedNumbers.length === 2 && !isBettingLocked && !hasPlacedBet) ? '#000' : 'rgba(255, 255, 255, 0.3)',
-              fontSize: '0.95rem',
+              fontSize: '0.9rem',
               fontWeight: '900',
               cursor: (selectedNumbers.length === 2 && !isBettingLocked && !isSubmitting && !hasPlacedBet) ? 'pointer' : 'not-allowed',
-              boxShadow: (selectedNumbers.length === 2 && !isBettingLocked && !hasPlacedBet) ? '0 4px 20px rgba(245, 158, 11, 0.4)' : 'none',
+              boxShadow: (selectedNumbers.length === 2 && !isBettingLocked && !hasPlacedBet) ? '0 4px 16px rgba(245, 158, 11, 0.35)' : 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
+              gap: '6px',
               transition: 'all 0.2s ease'
             }}
           >
             {isSubmitting ? (
               <span>Placing Bet...</span>
             ) : hasPlacedBet ? (
-              <span>BET ALREADY PLACED (NEXT ROUND IN {localSeconds}S)</span>
+              <span>BET PLACED (NEXT ROUND IN {localSeconds}S)</span>
             ) : isBettingLocked ? (
-              <span>Betting Closed (Drawing Cards)</span>
+              <span>BETTING CLOSED (REVEALING...)</span>
             ) : selectedNumbers.length !== 2 ? (
-              <span>Pick 2 Numbers to Place Bet</span>
+              <span>PICK 2 NUMBERS TO BET</span>
             ) : (
               <span>PLACE BET (₹{betAmount})</span>
             )}
           </button>
         </GlassCard>
 
-        {/* Tab Navigation: History / My Bets / Rules */}
+        {/* Tab Navigation: Recent Draws / My Bets */}
         <div style={{
           display: 'flex',
           background: 'rgba(255, 255, 255, 0.05)',
-          borderRadius: '14px',
-          padding: '4px',
+          borderRadius: '12px',
+          padding: '3px',
           border: '1px solid rgba(255, 255, 255, 0.08)'
         }}>
           {[
             { id: 'history', label: 'Recent Draws', icon: HistoryIcon },
-            { id: 'mybets', label: 'My Bets', icon: User },
-            { id: 'rules', label: 'Rules & Payouts', icon: HelpCircle }
+            { id: 'mybets', label: 'My Bets', icon: User }
           ].map((tab) => {
             const Icon = tab.icon;
-            const isTabActive = activeTab === tab.id;
+            const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
@@ -706,17 +617,17 @@ const DoublePatti = () => {
                   flex: 1,
                   padding: '8px 4px',
                   borderRadius: '10px',
+                  background: isActive ? 'linear-gradient(135deg, var(--accent-gold), #d97706)' : 'transparent',
                   border: 'none',
-                  background: isTabActive ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
-                  color: isTabActive ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                  fontWeight: isTabActive ? '800' : '600',
-                  fontSize: '0.72rem',
+                  color: isActive ? '#000' : 'var(--text-secondary)',
+                  fontWeight: isActive ? '800' : '600',
+                  fontSize: '0.75rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.2s ease'
                 }}
               >
                 <Icon size={14} />
@@ -728,26 +639,27 @@ const DoublePatti = () => {
 
         {/* Tab Content 1: History */}
         {activeTab === 'history' && (
-          <GlassCard style={{ padding: '14px', borderRadius: '18px' }}>
+          <GlassCard style={{ padding: '14px', borderRadius: '16px' }}>
             <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#fff', marginBottom: '10px' }}>
-              Previous 1-Min Results
+              Patti Round History
             </div>
+
             {historyPatti.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                No completed rounds yet. The first round is underway!
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', padding: '16px' }}>
+                No completed rounds yet.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {historyPatti.slice(0, 15).map((r) => (
                   <div
                     key={r.id}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      borderRadius: '10px',
-                      padding: '8px 12px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      background: 'rgba(255, 255, 255, 0.03)',
                       border: '1px solid rgba(255, 255, 255, 0.05)'
                     }}
                   >
@@ -755,34 +667,29 @@ const DoublePatti = () => {
                       <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#fff' }}>
                         Round #{r.roundNumber}
                       </div>
-                      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
-                        {r.createdAt ? new Date(r.createdAt.seconds ? r.createdAt.seconds * 1000 : r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                      </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
-                        Cards:
-                      </span>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                       <span style={{
                         background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                         color: '#000',
                         fontWeight: '900',
-                        fontSize: '0.8rem',
-                        padding: '3px 8px',
-                        borderRadius: '6px'
+                        fontSize: '0.75rem',
+                        padding: '1px 6px',
+                        borderRadius: '4px'
                       }}>
-                        {r.card1}
+                        {r.card1 ?? '?'}
                       </span>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>&</span>
                       <span style={{
                         background: 'linear-gradient(135deg, #d946ef, #a855f7)',
                         color: '#fff',
                         fontWeight: '900',
-                        fontSize: '0.8rem',
-                        padding: '3px 8px',
-                        borderRadius: '6px'
+                        fontSize: '0.75rem',
+                        padding: '1px 6px',
+                        borderRadius: '4px'
                       }}>
-                        {r.card2}
+                        {r.card2 ?? '?'}
                       </span>
                     </div>
                   </div>
@@ -794,16 +701,17 @@ const DoublePatti = () => {
 
         {/* Tab Content 2: My Bets */}
         {activeTab === 'mybets' && (
-          <GlassCard style={{ padding: '14px', borderRadius: '18px' }}>
+          <GlassCard style={{ padding: '14px', borderRadius: '16px' }}>
             <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#fff', marginBottom: '10px' }}>
-              Your Double Patti Bets
+              My Recent Patti Bets
             </div>
+
             {recentBetsPatti.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                You haven't placed any Patti bets yet. Pick 2 numbers above to play!
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', padding: '16px' }}>
+                You haven't placed any Patti bets yet.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {recentBetsPatti.map((b) => {
                   const isWon = b.status === 'won';
                   const isPending = b.status === 'pending';
@@ -811,12 +719,12 @@ const DoublePatti = () => {
                     <div
                       key={b.id}
                       style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        borderRadius: '10px',
-                        padding: '10px 12px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        borderRadius: '10px',
+                        background: isWon ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.03)',
                         border: isWon ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)'
                       }}
                     >
@@ -855,35 +763,6 @@ const DoublePatti = () => {
                 })}
               </div>
             )}
-          </GlassCard>
-        )}
-
-        {/* Tab Content 3: Rules & Paytable */}
-        {activeTab === 'rules' && (
-          <GlassCard style={{ padding: '16px', borderRadius: '18px' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>
-              Double Patti Game Rules
-            </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-              <p style={{ marginBottom: '8px' }}>
-                <strong>1. 1-Minute Live Fast Rounds:</strong> Every 60 seconds, a new round starts. You can place bets up until 2 seconds before the timer ends.
-              </p>
-              <p style={{ marginBottom: '8px' }}>
-                <strong>2. Pick 2 Numbers:</strong> Choose any 2 distinct numbers from 0 to 9 (e.g., 3 and 7).
-              </p>
-              <p style={{ marginBottom: '8px' }}>
-                <strong>3. Drawing:</strong> At 00:00, the system draws 2 unique winning Patti cards between 0 and 9.
-              </p>
-              <p style={{ marginBottom: '8px' }}>
-                <strong>4. Jackpot (Both Match):</strong> If both of your chosen numbers match the drawn cards, you win the <strong>9.0X Jackpot</strong>! (e.g. ₹100 bet pays ₹855 net).
-              </p>
-              <p style={{ marginBottom: '8px' }}>
-                <strong>5. Safety Return (1 Match):</strong> If exactly 1 of your chosen numbers matches either drawn card, you win a <strong>1.5X Safety Return</strong>! (e.g. ₹100 bet pays ₹142.50 net).
-              </p>
-              <p>
-                <strong>6. Shared Wallet:</strong> Use your single balance for Double Patti, Dice 30s, and Dice 1 Min.
-              </p>
-            </div>
           </GlassCard>
         )}
 
@@ -1074,13 +953,11 @@ const DoublePatti = () => {
                 cursor: 'pointer'
               }}
             >
-              Got It
+              Got It!
             </button>
           </GlassCard>
         </div>
       )}
-
-      <BottomNav />
     </div>
   );
 };
