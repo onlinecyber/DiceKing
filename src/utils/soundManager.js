@@ -27,9 +27,15 @@ class SoundManager {
     return this.muted;
   }
 
+  isGamePage() {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname.toLowerCase();
+    return path === '/game' || path === '/patti';
+  }
+
   // Play dice roll sound (noise burst + rhythmic thumps)
   playDiceRoll() {
-    if (this.muted) return;
+    if (this.muted || !this.isGamePage()) return;
     this.initContext();
     if (!this.audioCtx) return;
 
@@ -57,7 +63,7 @@ class SoundManager {
 
   // Play win celebration fanfare chime
   playWin() {
-    if (this.muted) return;
+    if (this.muted || !this.isGamePage()) return;
     this.initContext();
     if (!this.audioCtx) return;
 
@@ -84,7 +90,7 @@ class SoundManager {
 
   // Play countdown tick sound
   playTick() {
-    if (this.muted) return;
+    if (this.muted || !this.isGamePage()) return;
     this.initContext();
     if (!this.audioCtx) return;
 
@@ -156,7 +162,7 @@ class SoundManager {
 
   // Play loss tone
   playLoss() {
-    if (this.muted) return;
+    if (this.muted || !this.isGamePage()) return;
     this.initContext();
     if (!this.audioCtx) return;
 
