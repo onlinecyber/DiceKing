@@ -168,6 +168,21 @@ const HistoryList = () => {
     );
   };
 
+  const [gameHistoryPage, setGameHistoryPage] = useState(0);
+  const [myHistoryPage, setMyHistoryPage] = useState(0);
+
+  useEffect(() => {
+    setGameHistoryPage(0);
+    setMyHistoryPage(0);
+  }, [gameMode, activeTab]);
+
+  const PAGE_SIZE = 10;
+  const totalGamePages = Math.ceil(history.length / PAGE_SIZE) || 1;
+  const currentHistoryItems = history.slice(gameHistoryPage * PAGE_SIZE, (gameHistoryPage + 1) * PAGE_SIZE);
+
+  const totalMyPages = Math.ceil(displayedBets.length / PAGE_SIZE) || 1;
+  const currentMyBetsItems = displayedBets.slice(myHistoryPage * PAGE_SIZE, (myHistoryPage + 1) * PAGE_SIZE);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       
@@ -233,7 +248,56 @@ const HistoryList = () => {
 
       {/* Tab 1: Game History */}
       {activeTab === 'game' && (
-        <GlassCard style={{ padding: '14px 16px', maxHeight: '420px', overflowY: 'auto' }}>
+        <GlassCard style={{ padding: '14px 16px' }}>
+          {history.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span style={{ fontSize: '0.78rem', color: '#fff', fontWeight: '800' }}>
+                Game History ({gameMode === '1m' ? '1-Min' : '30-Sec'})
+              </span>
+              {totalGamePages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    onClick={() => setGameHistoryPage(p => Math.max(0, p - 1))}
+                    disabled={gameHistoryPage === 0}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.65rem',
+                      fontWeight: '700',
+                      color: '#fff',
+                      cursor: gameHistoryPage === 0 ? 'not-allowed' : 'pointer',
+                      opacity: gameHistoryPage === 0 ? 0.3 : 1
+                    }}
+                  >
+                    ❮ Prev
+                  </button>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: '700' }}>
+                    {gameHistoryPage + 1} / {totalGamePages}
+                  </span>
+                  <button
+                    onClick={() => setGameHistoryPage(p => Math.min(totalGamePages - 1, p + 1))}
+                    disabled={gameHistoryPage >= totalGamePages - 1}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.65rem',
+                      fontWeight: '700',
+                      color: '#fff',
+                      cursor: gameHistoryPage >= totalGamePages - 1 ? 'not-allowed' : 'pointer',
+                      opacity: gameHistoryPage >= totalGamePages - 1 ? 0.3 : 1
+                    }}
+                  >
+                    Next ❯
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {history.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
               No game rounds recorded yet.
@@ -249,7 +313,7 @@ const HistoryList = () => {
                 </tr>
               </thead>
               <tbody>
-                {history.map((r) => {
+                {currentHistoryItems.map((r) => {
                   const styles = getRoundBadgeStyles(r.total);
                   return (
                     <tr 
@@ -300,7 +364,56 @@ const HistoryList = () => {
 
       {/* Tab 2: My History (User's personal bets with Win / Loss amounts) */}
       {activeTab === 'my' && (
-        <GlassCard style={{ padding: '14px 16px', maxHeight: '420px', overflowY: 'auto' }}>
+        <GlassCard style={{ padding: '14px 16px' }}>
+          {displayedBets.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span style={{ fontSize: '0.78rem', color: '#fff', fontWeight: '800' }}>
+                My Bet History ({gameMode === '1m' ? '1-Min' : '30-Sec'})
+              </span>
+              {totalMyPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    onClick={() => setMyHistoryPage(p => Math.max(0, p - 1))}
+                    disabled={myHistoryPage === 0}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.65rem',
+                      fontWeight: '700',
+                      color: '#fff',
+                      cursor: myHistoryPage === 0 ? 'not-allowed' : 'pointer',
+                      opacity: myHistoryPage === 0 ? 0.3 : 1
+                    }}
+                  >
+                    ❮ Prev
+                  </button>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: '700' }}>
+                    {myHistoryPage + 1} / {totalMyPages}
+                  </span>
+                  <button
+                    onClick={() => setMyHistoryPage(p => Math.min(totalMyPages - 1, p + 1))}
+                    disabled={myHistoryPage >= totalMyPages - 1}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.65rem',
+                      fontWeight: '700',
+                      color: '#fff',
+                      cursor: myHistoryPage >= totalMyPages - 1 ? 'not-allowed' : 'pointer',
+                      opacity: myHistoryPage >= totalMyPages - 1 ? 0.3 : 1
+                    }}
+                  >
+                    Next ❯
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {!currentUser ? (
             <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
               Please log in to view your bet history.
@@ -329,7 +442,7 @@ const HistoryList = () => {
                 <span style={{ textAlign: 'right' }}>RESULT</span>
               </div>
 
-              {displayedBets.map((b) => {
+              {currentMyBetsItems.map((b) => {
                 const isWon = b.status === 'won';
                 const isLost = b.status === 'lost';
                 const isPending = b.status === 'pending';
