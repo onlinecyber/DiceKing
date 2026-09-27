@@ -69,7 +69,7 @@ const HistoryList = () => {
           const timeB = b.createdAt?.seconds || (b.createdAt?.toMillis ? b.createdAt.toMillis() / 1000 : 0);
           return timeB - timeA;
         });
-        setMyBets(bets.slice(0, 30));
+        setMyBets(bets.slice(0, 200));
         setLoadingBets(false);
       },
       (error) => {

@@ -461,18 +461,18 @@ export const GameProvider = ({ children }) => {
       }
     }, (error) => console.error("Active rounds snapshot error:", error));
 
-    // Listen to history of last 50 completed rounds across both modes
+    // Listen to history of completed rounds across both modes (up to 200 rounds)
     const historyQuery = query(
       collection(db, 'gameRounds'),
       where('status', '==', 'completed'),
       orderBy('createdAt', 'desc'),
-      limit(50)
+      limit(200)
     );
 
     const unsubscribeHistory = onSnapshot(historyQuery, (snapshot) => {
       const allRounds = snapshot.docs.map(doc => doc.data());
-      const rounds30s = allRounds.filter(r => r.gameMode !== '1m').slice(0, 20);
-      const rounds1m = allRounds.filter(r => r.gameMode === '1m').slice(0, 20);
+      const rounds30s = allRounds.filter(r => r.gameMode !== '1m');
+      const rounds1m = allRounds.filter(r => r.gameMode === '1m');
 
       setHistory(rounds30s);
       setHistory1m(rounds1m);
@@ -627,11 +627,11 @@ export const GameProvider = ({ children }) => {
       }
     };
 
-    // Listen to completed Patti rounds history (No composite index required!)
+    // Listen to completed Patti rounds history (up to 200 rounds)
     const historyPattiQuery = query(
       collection(db, 'pattiRounds'),
       orderBy('createdAt', 'desc'),
-      limit(30)
+      limit(200)
     );
 
     const unsubscribeHistoryPatti = onSnapshot(historyPattiQuery, (snapshot) => {
@@ -698,7 +698,7 @@ export const GameProvider = ({ children }) => {
       collection(db, 'bets'),
       where('uid', '==', currentUser.uid),
       orderBy('createdAt', 'desc'),
-      limit(20)
+      limit(200)
     );
 
     const unsubscribeBets = onSnapshot(betsQuery, (snapshot) => {
@@ -709,7 +709,7 @@ export const GameProvider = ({ children }) => {
     const pattiBetsQuery = query(
       collection(db, 'pattiBets'),
       where('uid', '==', currentUser.uid),
-      limit(50)
+      limit(200)
     );
 
     const unsubscribePattiBets = onSnapshot(pattiBetsQuery, (snapshot) => {
@@ -719,7 +719,7 @@ export const GameProvider = ({ children }) => {
         const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
         return tB - tA;
       });
-      setRecentBetsPatti(bets.slice(0, 20));
+      setRecentBetsPatti(bets.slice(0, 200));
     }, (error) => console.error("Patti bets snapshot error:", error));
 
     return () => {
