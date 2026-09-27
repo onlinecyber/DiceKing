@@ -41,6 +41,8 @@ const DoublePatti = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('history'); // 'history' | 'mybets'
   const [showRulesModal, setShowRulesModal] = useState(false);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [myBetsPage, setMyBetsPage] = useState(0);
 
   // Smooth local 1-second countdown ticker
   const [localSeconds, setLocalSeconds] = useState(countdownPatti);
@@ -607,9 +609,104 @@ const DoublePatti = () => {
         {/* Tab Content 1: History */}
         {activeTab === 'history' && (
           <GlassCard style={{ padding: '14px', borderRadius: '16px' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#fff', marginBottom: '10px' }}>
-              Patti Round History
+            {/* Header & Slide Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#fff' }}>
+                Patti Round History
+              </div>
+              {historyPatti.length > 10 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
+                    disabled={historyPage === 0}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.65rem',
+                      fontWeight: '700',
+                      color: '#fff',
+                      cursor: historyPage === 0 ? 'not-allowed' : 'pointer',
+                      opacity: historyPage === 0 ? 0.3 : 1
+                    }}
+                  >
+                    ❮ Prev
+                  </button>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: '700' }}>
+                    {historyPage + 1} / {Math.ceil(historyPatti.length / 10)}
+                  </span>
+                  <button
+                    onClick={() => setHistoryPage(p => Math.min(Math.ceil(historyPatti.length / 10) - 1, p + 1))}
+                    disabled={historyPage >= Math.ceil(historyPatti.length / 10) - 1}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.65rem',
+                      fontWeight: '700',
+                      color: '#fff',
+                      cursor: historyPage >= Math.ceil(historyPatti.length / 10) - 1 ? 'not-allowed' : 'pointer',
+                      opacity: historyPage >= Math.ceil(historyPatti.length / 10) - 1 ? 0.3 : 1
+                    }}
+                  >
+                    Next ❯
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* Horizontal Slide Bead Road Trend Pills */}
+            {historyPatti.length > 0 && (
+              <div style={{
+                display: 'flex',
+                gap: '6px',
+                overflowX: 'auto',
+                paddingBottom: '8px',
+                marginBottom: '10px',
+                scrollbarWidth: 'none'
+              }}>
+                {historyPatti.slice(0, 15).map((r) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      flexShrink: 0,
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '3px 8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.68rem'
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: '700', fontSize: '0.62rem' }}>
+                      #{r.roundNumber}
+                    </span>
+                    <span style={{
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      color: '#000',
+                      fontWeight: '900',
+                      padding: '0 5px',
+                      borderRadius: '4px'
+                    }}>
+                      {r.card1 ?? '?'}
+                    </span>
+                    <span style={{
+                      background: 'linear-gradient(135deg, #d946ef, #a855f7)',
+                      color: '#fff',
+                      fontWeight: '900',
+                      padding: '0 5px',
+                      borderRadius: '4px'
+                    }}>
+                      {r.card2 ?? '?'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {historyPatti.length === 0 ? (
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', padding: '16px' }}>
@@ -617,7 +714,7 @@ const DoublePatti = () => {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {historyPatti.slice(0, 15).map((r) => (
+                {historyPatti.slice(historyPage * 10, (historyPage + 1) * 10).map((r) => (
                   <div
                     key={r.id}
                     style={{
@@ -669,8 +766,52 @@ const DoublePatti = () => {
         {/* Tab Content 2: My Bets */}
         {activeTab === 'mybets' && (
           <GlassCard style={{ padding: '14px', borderRadius: '16px' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#fff', marginBottom: '10px' }}>
-              My Recent Patti Bets
+            {/* Header & Slide Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#fff' }}>
+                My Recent Patti Bets
+              </div>
+              {recentBetsPatti.length > 10 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    onClick={() => setMyBetsPage(p => Math.max(0, p - 1))}
+                    disabled={myBetsPage === 0}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.65rem',
+                      fontWeight: '700',
+                      color: '#fff',
+                      cursor: myBetsPage === 0 ? 'not-allowed' : 'pointer',
+                      opacity: myBetsPage === 0 ? 0.3 : 1
+                    }}
+                  >
+                    ❮ Prev
+                  </button>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: '700' }}>
+                    {myBetsPage + 1} / {Math.ceil(recentBetsPatti.length / 10)}
+                  </span>
+                  <button
+                    onClick={() => setMyBetsPage(p => Math.min(Math.ceil(recentBetsPatti.length / 10) - 1, p + 1))}
+                    disabled={myBetsPage >= Math.ceil(recentBetsPatti.length / 10) - 1}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.65rem',
+                      fontWeight: '700',
+                      color: '#fff',
+                      cursor: myBetsPage >= Math.ceil(recentBetsPatti.length / 10) - 1 ? 'not-allowed' : 'pointer',
+                      opacity: myBetsPage >= Math.ceil(recentBetsPatti.length / 10) - 1 ? 0.3 : 1
+                    }}
+                  >
+                    Next ❯
+                  </button>
+                </div>
+              )}
             </div>
 
             {recentBetsPatti.length === 0 ? (
@@ -679,7 +820,7 @@ const DoublePatti = () => {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {recentBetsPatti.map((b) => {
+                {recentBetsPatti.slice(myBetsPage * 10, (myBetsPage + 1) * 10).map((b) => {
                   const isWon = b.status === 'won';
                   const isPending = b.status === 'pending';
                   return (
