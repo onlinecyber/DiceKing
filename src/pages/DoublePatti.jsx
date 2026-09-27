@@ -657,56 +657,7 @@ const DoublePatti = () => {
               )}
             </div>
 
-            {/* Horizontal Slide Bead Road Trend Pills */}
-            {historyPatti.length > 0 && (
-              <div style={{
-                display: 'flex',
-                gap: '6px',
-                overflowX: 'auto',
-                paddingBottom: '8px',
-                marginBottom: '10px',
-                scrollbarWidth: 'none'
-              }}>
-                {historyPatti.slice(0, 15).map((r) => (
-                  <div
-                    key={r.id}
-                    style={{
-                      flexShrink: 0,
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
-                      padding: '3px 8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '0.68rem'
-                    }}
-                  >
-                    <span style={{ color: 'var(--text-secondary)', fontWeight: '700', fontSize: '0.62rem' }}>
-                      #{r.roundNumber}
-                    </span>
-                    <span style={{
-                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                      color: '#000',
-                      fontWeight: '900',
-                      padding: '0 5px',
-                      borderRadius: '4px'
-                    }}>
-                      {r.card1 ?? '?'}
-                    </span>
-                    <span style={{
-                      background: 'linear-gradient(135deg, #d946ef, #a855f7)',
-                      color: '#fff',
-                      fontWeight: '900',
-                      padding: '0 5px',
-                      borderRadius: '4px'
-                    }}>
-                      {r.card2 ?? '?'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+
 
             {historyPatti.length === 0 ? (
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', padding: '16px' }}>
